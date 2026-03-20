@@ -1,0 +1,22 @@
+[project]
+name = "civil-ai-agent"
+version = "0.1.0"
+description = "Civil AI Inspection Agent"
+requires-python = ">=3.10"
+
+dependencies = [
+    "streamlit",
+    "ultralytics",
+    "pillow",
+    "numpy",
+    "reportlab",
+    "openai",
+    "huggingface_hub",
+    "python-dotenv"
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "black"
+]
