@@ -149,7 +149,6 @@ class CivilAIStreamlitApp:
         return f"""
         <div style=\"background:#f8fafc;padding:20px 22px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;line-height:1.6;\">
             <h2 style=\"margin:0 0 10px 0;color:#0369a1;font-size:22px;\">AI Inspection Report</h2>
-            <p style=\"margin:0 0 10px 0;color:#64748b;font-size:12px;\">For more details: <a href=\"https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md\" target=\"_blank\" style=\"font-size:12px;\">GitHub Repository</a></p>
             <div style=\"font-size:14px;white-space:pre-wrap;font-family:Segoe UI, sans-serif;\">{text}</div>
         </div>
         """
