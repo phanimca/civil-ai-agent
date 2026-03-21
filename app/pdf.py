@@ -1,3 +1,4 @@
+import re
 import tempfile
 from datetime import datetime
 
@@ -49,7 +50,6 @@ def create_pdf(report, image=None, summary=None):
     )
     h2_style = ParagraphStyle(
         "ReportH2",
-        "ReportTitle",
         parent=styles["Title"],
         fontName="Helvetica-Bold",
         fontSize=16,
@@ -68,6 +68,16 @@ def create_pdf(report, image=None, summary=None):
         textColor=colors.HexColor("#0F4C81"),
         spaceBefore=10,
         spaceAfter=3,
+    )
+    h4_style = ParagraphStyle(
+        "ReportH4",
+        parent=styles["Heading4"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=15,
+        textColor=colors.HexColor("#1E3A8A"),
+        spaceBefore=8,
+        spaceAfter=2,
     )
     subtitle_style = ParagraphStyle(
         "ReportSubtitle",
@@ -169,24 +179,27 @@ def create_pdf(report, image=None, summary=None):
 
     for raw_line in report.split("\n"):
         line = raw_line.rstrip()
+        stripped = line.lstrip()
 
-        # H2  →  ## text
-        if line.startswith("## "):
+        # Markdown headings  →  ##, ###, ####, #####, ######
+        heading_match = re.match(r"^(#{2,6})\s+(.+)$", stripped)
+        if heading_match:
             _flush_bullets()
-            content.append(Paragraph(_md_to_rl(line[3:].strip()), h2_style))
-            content.append(
-                HRFlowable(width="100%", thickness=0.75, color=colors.HexColor("#BAE6FD"), spaceAfter=4)
-            )
-            continue
+            level = len(heading_match.group(1))
+            heading_text = _md_to_rl(heading_match.group(2).strip())
 
-        # H3  →  ### text
-        if line.startswith("### "):
-            _flush_bullets()
-            content.append(Paragraph(_md_to_rl(line[4:].strip()), h3_style))
+            if level == 2:
+                content.append(Paragraph(heading_text, h2_style))
+                content.append(
+                    HRFlowable(width="100%", thickness=0.75, color=colors.HexColor("#BAE6FD"), spaceAfter=4)
+                )
+            elif level == 3:
+                content.append(Paragraph(heading_text, h3_style))
+            else:
+                content.append(Paragraph(heading_text, h4_style))
             continue
 
         # Bullet  →  - text  or  * text
-        stripped = line.lstrip()
         if stripped.startswith("- ") or stripped.startswith("* "):
             bullet_text = _md_to_rl(stripped[2:].strip())
             bullet_buffer.append(
