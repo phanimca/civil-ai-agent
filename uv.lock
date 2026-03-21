@@ -234,7 +234,7 @@ requires-dist = [
     { name = "huggingface-hub" },
     { name = "numpy" },
     { name = "openai" },
-    { name = "opencv-python-headless" },
+    { name = "opencv-python-headless", specifier = ">=4.8.0" },
     { name = "pillow" },
     { name = "python-dotenv" },
     { name = "reportlab" },

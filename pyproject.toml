@@ -7,7 +7,7 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "streamlit",
     "ultralytics",
-    "opencv-python-headless",
+    "opencv-python-headless>=4.8.0",
     "pillow",
     "numpy",
     "reportlab",
