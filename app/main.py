@@ -1,5 +1,5 @@
 import os
-import tempfile
+from datetime import datetime
 import streamlit as st
 import numpy as np
 from PIL import Image
@@ -8,9 +8,7 @@ from dotenv import load_dotenv
 from ultralytics import YOLO
 from huggingface_hub import hf_hub_download
 from openai import OpenAI
-
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
-from reportlab.lib.styles import getSampleStyleSheet
+from pdf import create_pdf
 
 # -------------------------------
 # 🔐 LOAD ENV (uv + dotenv)
@@ -105,44 +103,18 @@ Generate a professional report including:
 # -------------------------------
 def style_report(text):
     return f"""
-    <div style="background:#0f172a;padding:20px;border-radius:10px;color:white">
-        <h2 style="color:#38bdf8;">🏗️ AI Inspection Report</h2>
-        <pre style="white-space:pre-wrap;font-size:14px;">{text}</pre>
+    <div style="background:#f8fafc;padding:20px 22px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;line-height:1.6;">
+        <h2 style="margin:0 0 10px 0;color:#0369a1;font-size:22px;">AI Inspection Report</h2>
+        <div style="font-size:14px;white-space:pre-wrap;font-family:Segoe UI, sans-serif;">{text}</div>
     </div>
     """
 
 # -------------------------------
-# 📄 PDF GENERATOR
-# -------------------------------
-def create_pdf(report, image):
-    file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    doc = SimpleDocTemplate(file.name)
-    styles = getSampleStyleSheet()
-
-    content = []
-
-    content.append(Paragraph("AI Infrastructure Inspection Report", styles["Title"]))
-    content.append(Spacer(1, 12))
-
-    img_path = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg").name
-    image.save(img_path)
-
-    content.append(RLImage(img_path, width=400, height=250))
-    content.append(Spacer(1, 12))
-
-    for line in report.split("\n"):
-        content.append(Paragraph(line, styles["Normal"]))
-        content.append(Spacer(1, 8))
-
-    doc.build(content)
-    return file.name
-
-# -------------------------------
 # 🖥️ UI CONFIG
 # -------------------------------
-st.set_page_config(page_title="Civil AI Agent", layout="wide")
+st.set_page_config(page_title="Phani's Civil AI Agent", layout="wide")
 
-st.title("🏗️ Civil AI Inspection Agent")
+st.title("🏗️ Phani's Civil AI Inspection Agent")
 
 uploaded_files = st.file_uploader(
     "📤 Upload Infrastructure Images",
@@ -207,7 +179,16 @@ if uploaded_files:
             st.markdown(style_report(report), unsafe_allow_html=True)
 
             # PDF Download
-            pdf_file = create_pdf(report, image)
+            pdf_file = create_pdf(
+                report,
+                image,
+                summary={
+                    "image_name": file.name,
+                    "total_cracks": total,
+                    "high_severity": high,
+                    "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                },
+            )
 
             with open(pdf_file, "rb") as f:
                 st.download_button(
@@ -224,4 +205,4 @@ else:
 # -------------------------------
 # FOOTER
 # -------------------------------
-st.caption("🚀 YOLO + GenAI | Modern Civil AI Platform (uv-powered)")
+st.caption("🚀 Designed by Phani | Modern Civil AI Platform")

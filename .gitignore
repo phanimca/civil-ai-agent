@@ -11,3 +11,4 @@ wheels/
 .sfdx
 
 .env
+.streamlit/secrets.toml
