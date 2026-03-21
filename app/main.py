@@ -105,7 +105,7 @@ def style_report(text):
     return f"""
     <div style="background:#f8fafc;padding:20px 22px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;line-height:1.6;">
         <h2 style="margin:0 0 10px 0;color:#0369a1;font-size:22px;">AI Inspection Report</h2>
-        <h3 style="margin:0 0 10px 0;color:#0369a1;font-size:22px;">For more details: <a href="https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md" target="_blank">GitHub Repository</a></h3>
+        <p style="margin:0 0 10px 0;color:#64748b;font-size:12px;">For more details: <a href="https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md" target="_blank" style="font-size:12px;">GitHub Repository</a></p>
         <div style="font-size:14px;white-space:pre-wrap;font-family:Segoe UI, sans-serif;">{text}</div>
     </div>
     """
@@ -116,7 +116,13 @@ def style_report(text):
 st.set_page_config(page_title="Phani's Civil AI Agent", layout="wide")
 
 st.title("🏗️ Phani's Civil AI Inspection Agent")
-st.subheader("For more details: <a href=\"https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md\" target=\"_blank\">GitHub Repository</a>")
+st.markdown(
+    '<p style="font-size:12px;color:#64748b;margin-top:-6px;margin-bottom:12px;">'
+    'For more details: '
+    '<a href="https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md" target="_blank">GitHub Repository</a>'
+    '</p>',
+    unsafe_allow_html=True,
+)
 
 uploaded_files = st.file_uploader(
     "📤 Upload Infrastructure Images",
