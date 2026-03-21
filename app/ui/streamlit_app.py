@@ -163,18 +163,22 @@ class CivilAIStreamlitApp:
         st.session_state.setdefault("pending_code", "")
 
     def _render_header(self) -> None:
-        logo_col, title_col = st.columns([1.6, 5.4])
+        logo_col, title_col, right_col = st.columns([1.6, 4.8, 1.6])
         with logo_col:
             if os.path.exists(self.settings.header_logo_path):
                 st.image(self.settings.header_logo_path, width=190)
         with title_col:
-            st.title("Civil Inspection AI Agent")
+            st.title("Phani's Civil Inspection AI Agent")
             st.markdown(
                 '<p style="font-size:12px;color:#64748b;margin-top:-6px;margin-bottom:8px;">'
                 "Demo for B.Tech Civil students | Designed by Phani"
                 "</p>",
                 unsafe_allow_html=True,
             )
+        with right_col:
+            ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.jpg")
+            if os.path.exists(ai_img_path):
+                st.image(ai_img_path, use_container_width=True)
         st.divider()
 
     @staticmethod
