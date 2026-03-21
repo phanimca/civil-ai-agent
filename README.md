@@ -47,7 +47,7 @@ Notes:
 - `HF_TOKEN` is optional if you use a local/fallback model.
 
 ### Install Dependencies
-This project uses `pyproject.toml` and `uv.lock`, so install dependencies with `uv`.
+For local development, this project is intended to be run with `uv` using the dependencies declared in `pyproject.toml`.
 
 With uv:
 ```bash
@@ -102,16 +102,20 @@ HF_TOKEN=your_huggingface_read_token
 uv run streamlit run app/main.py
 ```
 
+### Python Version
+Use Python `3.12` locally and in Streamlit Community Cloud.
+
 ## How to Configure and Run on Windows
 1. Open PowerShell in the project directory.
-2. Create and activate a virtual environment.
-3. Install dependencies.
-4. Configure `.env`.
-5. Run Streamlit.
+2. Make sure Python `3.12` is installed.
+3. Create and activate a virtual environment.
+4. Install dependencies with `uv`.
+5. Configure `.env`.
+6. Run Streamlit.
 
 Commands:
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 uv sync
 uv run streamlit run app/main.py
@@ -119,14 +123,15 @@ uv run streamlit run app/main.py
 
 ## How to Configure and Run on macOS
 1. Open Terminal in the project directory.
-2. Create and activate a virtual environment.
-3. Install dependencies.
-4. Configure `.env`.
-5. Run Streamlit.
+2. Make sure Python `3.12` is installed.
+3. Create and activate a virtual environment.
+4. Install dependencies with `uv`.
+5. Configure `.env`.
+6. Run Streamlit.
 
 Commands:
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 uv sync
 uv run streamlit run app/main.py
@@ -137,15 +142,106 @@ uv run streamlit run app/main.py
 2. Sign in to Streamlit Community Cloud.
 3. Click New app and select your GitHub repo and branch.
 4. Set Main file path to `app/main.py`.
-5. Add secrets in Streamlit app settings:
+5. Ensure the repository contains these deployment files in the root:
+
+	- `requirements.txt` for Python dependencies
+	- `packages.txt` for Debian apt dependencies
+	- `.python-version` and `runtime.txt` pinned to Python `3.12`
+
+6. Add secrets in Streamlit app settings:
 
 ```toml
 OPENAI_TOKEN = "your_openai_compatible_token"
 HF_TOKEN = "your_huggingface_token"
 ```
 
-6. Deploy the app.
-7. Verify upload, detection, AI report generation, and PDF download.
+7. Deploy the app.
+8. Verify upload, detection, AI report generation, and PDF download.
+
+### Streamlit Community Cloud Dependency Notes
+This repository uses different dependency strategies for local development and cloud deployment:
+
+- Local development: `uv` + `pyproject.toml`
+- Streamlit Community Cloud: `requirements.txt` + `packages.txt`
+
+This is intentional. Streamlit Community Cloud gave more reliable builds with:
+
+- `requirements.txt` to force `opencv-python-headless`
+- `packages.txt` containing:
+
+```text
+libgl1
+```
+
+This avoids OpenCV GUI dependency issues during deployment.
+
+### Optional Local Streamlit Secrets
+If you want to test Streamlit secrets locally instead of `.env`, create `.streamlit/secrets.toml`:
+
+```toml
+OPENAI_TOKEN = "your_openai_compatible_token"
+HF_TOKEN = "your_huggingface_token"
+```
+
+## Troubleshooting
+
+### Streamlit Cloud fails on `from ultralytics import YOLO`
+If the app fails during startup while importing `YOLO` or `cv2`, check the following:
+
+1. Confirm deployment is using Python `3.12`.
+2. Confirm the repository contains root-level `requirements.txt`.
+3. Confirm the repository contains root-level `packages.txt`.
+4. Confirm `uv.lock` is not committed to the repository.
+
+Reason:
+- Streamlit Community Cloud may prefer `uv.lock` over `requirements.txt` if both are present.
+- For this app, `requirements.txt` is required so deployment uses `opencv-python-headless` instead of GUI-linked OpenCV builds.
+
+### Error: `ImportError: libGL.so.1: cannot open shared object file`
+This means the Linux system dependency for OpenCV is missing.
+
+Fix:
+- Ensure [packages.txt](packages.txt) exists in the repository root.
+- Ensure it contains:
+
+```text
+libgl1
+```
+
+### Error: `opencv` or `cv2` import issues on Streamlit Cloud
+Use [requirements.txt](requirements.txt) in the repository root with:
+
+```text
+opencv-python-headless>=4.8.0
+ultralytics
+streamlit
+pillow
+numpy
+reportlab
+openai
+huggingface_hub
+python-dotenv
+```
+
+### App deploys but secrets are missing
+If the app starts but fails when generating reports or downloading the model:
+
+1. Open your Streamlit app settings.
+2. Go to `Secrets`.
+3. Add:
+
+```toml
+OPENAI_TOKEN = "your_github_models_token"
+HF_TOKEN = "your_huggingface_token"
+```
+
+### Local app works but cloud deployment fails
+This project intentionally uses different dependency strategies:
+
+1. Local: `uv sync` and `uv run`
+2. Streamlit Cloud: `requirements.txt` and `packages.txt`
+
+Do not assume the local `uv` setup will behave identically to the cloud builder.
 
 ## Tech Stack
 - Python
