@@ -13,7 +13,9 @@ dependencies = [
     "reportlab",
     "openai",
     "huggingface_hub",
-    "python-dotenv"
+    "python-dotenv",
+    "resend",
+    "sib-api-v3-sdk"
 ]
 
 [dependency-groups]

@@ -219,6 +219,8 @@ dependencies = [
     { name = "pillow" },
     { name = "python-dotenv" },
     { name = "reportlab" },
+    { name = "resend" },
+    { name = "sib-api-v3-sdk" },
     { name = "streamlit" },
     { name = "ultralytics" },
 ]
@@ -238,6 +240,8 @@ requires-dist = [
     { name = "pillow" },
     { name = "python-dotenv" },
     { name = "reportlab" },
+    { name = "resend" },
+    { name = "sib-api-v3-sdk" },
     { name = "streamlit" },
     { name = "ultralytics" },
 ]
@@ -1936,6 +1940,19 @@ wheels = [
 ]
 
 [[package]]
+name = "resend"
+version = "2.26.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/ff/6a4e5e758fc2145c6a7d8563934d8ee24bf96a0212d7ec7d1af1f155bb74/resend-2.26.0.tar.gz", hash = "sha256:957a6a59dc597ce27fbd6d5383220dd9cc497fab99d4f3d775c8a42a449a569e", size = 36238, upload-time = "2026-03-20T22:49:09.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/16/c2/f88d3299d97aa1d36a923d0846fe185fcf5355ca898c954b2e5a79f090b5/resend-2.26.0-py2.py3-none-any.whl", hash = "sha256:5e25a804a84a68df504f2ade5369ac37e0139e37788a1f20b66c88696595b4bc", size = 57699, upload-time = "2026-03-20T22:49:08.354Z" },
+]
+
+[[package]]
 name = "rich"
 version = "14.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2175,6 +2192,18 @@ sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b2
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
 ]
+
+[[package]]
+name = "sib-api-v3-sdk"
+version = "7.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "python-dateutil" },
+    { name = "six" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/e6/44b6ca7c63cc72e5baf0b9a570e115913fb96e9f97201c2195b8bf4f5d71/sib-api-v3-sdk-7.6.0.tar.gz", hash = "sha256:8975108c4a66ca2280532017190150f98ac826eacdda6c2f859ff104d2828266", size = 265002, upload-time = "2023-03-20T06:21:08.403Z" }
 
 [[package]]
 name = "six"
