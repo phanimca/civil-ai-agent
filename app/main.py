@@ -105,6 +105,7 @@ def style_report(text):
     return f"""
     <div style="background:#f8fafc;padding:20px 22px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;line-height:1.6;">
         <h2 style="margin:0 0 10px 0;color:#0369a1;font-size:22px;">AI Inspection Report</h2>
+        <h3 style="margin:0 0 10px 0;color:#0369a1;font-size:22px;">For more details: <a href="https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md" target="_blank">GitHub Repository</a></h3>
         <div style="font-size:14px;white-space:pre-wrap;font-family:Segoe UI, sans-serif;">{text}</div>
     </div>
     """
