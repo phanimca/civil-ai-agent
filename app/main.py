@@ -116,6 +116,7 @@ def style_report(text):
 st.set_page_config(page_title="Phani's Civil AI Agent", layout="wide")
 
 st.title("🏗️ Phani's Civil AI Inspection Agent")
+st.subheader("For more details: <a href=\"https://github.com/phanimca/civil-ai-agent/blob/initial-version/README.md\" target=\"_blank\">GitHub Repository</a>")
 
 uploaded_files = st.file_uploader(
     "📤 Upload Infrastructure Images",
