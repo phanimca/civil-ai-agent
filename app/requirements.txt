@@ -1,0 +1,9 @@
+opencv-python-headless>=4.8.0
+ultralytics
+streamlit
+pillow
+numpy
+reportlab
+openai
+huggingface_hub
+python-dotenv
