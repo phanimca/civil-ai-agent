@@ -1,13 +1,62 @@
-# Civil-AI-Agent
+# Phani's Civil-AI-Agent
 
 ## About this Civil-AI-Agent
-Civil-AI-Agent is an interactive infrastructure inspection application built with Streamlit. It analyzes uploaded civil infrastructure images, detects visible cracks using YOLO, estimates severity, generates an AI-based engineering report, and allows report download as PDF.
+Phani's Civil-AI-Agent is an interactive infrastructure inspection application built with Streamlit. It analyzes uploaded civil infrastructure images, detects visible cracks using YOLO, estimates severity, generates an AI-based engineering report, and allows report download as PDF.
 
 The app combines:
 - Computer vision for defect detection (YOLO)
 - Rule-based severity scoring
 - LLM-assisted report generation
 - PDF export for inspection documentation
+
+## Description of AI Agents for Physical Civil Engineer
+Civil-AI-Agent can be viewed as a set of collaborating AI agents that help a physical civil engineer during inspection and reporting workflows:
+
+1. Detection Agent
+	- Detects visible cracks from uploaded site images using a YOLO model.
+	- Produces bounding boxes and confidence scores for each finding.
+
+2. Severity Assessment Agent
+	- Applies engineering-oriented rules (damage area ratio + confidence) to classify findings into Low, Medium, and High severity.
+	- Helps prioritize urgent field attention.
+
+3. Report Agent
+	- Converts detected findings into a structured professional narrative (summary, causes, recommendations, preventive actions).
+	- Supports consistent and faster documentation.
+
+4. Documentation Agent
+	- Assembles visual evidence and generated analysis into a downloadable PDF report.
+	- Improves communication with site teams, clients, and management.
+
+## Benefits of Using this Application
+1. Faster field reporting:
+	- Reduces manual inspection note-taking and report writing time.
+2. Better consistency:
+	- Produces standardized outputs across projects and inspectors.
+3. Improved decision support:
+	- Highlights high-severity defects to support maintenance prioritization.
+4. Stronger traceability:
+	- Keeps image-based evidence and narrative recommendations together in one document.
+5. Practical usability:
+	- Can be run locally or deployed on Streamlit Community Cloud for easy access.
+
+## AI Agents Orchestration Diagram (Mermaid)
+```mermaid
+flowchart LR
+	 U[Physical Civil Engineer] --> UI[Streamlit Interface]
+	 UI --> DA[Detection Agent\nYOLO Crack Detection]
+	 DA --> SA[Severity Assessment Agent\nRule-Based Scoring]
+	 SA --> RA[Report Agent\nLLM Report Generation]
+	 DA --> DOC[Documentation Agent\nPDF Builder]
+	 SA --> DOC
+	 RA --> DOC
+	 DOC --> OUT[Inspection Report PDF]
+	 OUT --> U
+```
+
+## How to Test the AI Agent
+- https://phani-civil-ai.streamlit.app/
+
 
 ## High Level Functional Overview
 1. User uploads one or more infrastructure images.
