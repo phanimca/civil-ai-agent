@@ -176,7 +176,7 @@ class CivilAIStreamlitApp:
                 unsafe_allow_html=True,
             )
         with right_col:
-            ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.jpg")
+            ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.png")
             if os.path.exists(ai_img_path):
                 st.image(ai_img_path, use_container_width=True)
         st.divider()
