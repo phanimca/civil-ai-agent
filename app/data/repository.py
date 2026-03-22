@@ -115,11 +115,30 @@ class SQLiteRepository:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS llm_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                llm_name TEXT NOT NULL,
+                usage_count INTEGER NOT NULL DEFAULT 1,
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                last_used TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, llm_name)
+            )
+            """
+        )
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_college ON users(college)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_codes_user ON verification_codes(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_inspections_user ON inspections(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_llm_usage_user ON llm_usage(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_llm_usage_name ON llm_usage(llm_name)")
 
         self._ensure_column(cur, "users", "first_name", "TEXT")
         self._ensure_column(cur, "users", "last_name", "TEXT")
@@ -448,3 +467,155 @@ class SQLiteRepository:
         rows = cur.fetchall()
         conn.close()
         return rows
+
+    def log_llm_usage(self, user_id: int, llm_name: str, tokens_used: int = 0) -> None:
+        """Log LLM usage for a user (ChatGPT, Claude, Gemini, etc.)"""
+        now = self.utc_now_str()
+        conn = self.get_conn()
+        cur = conn.cursor()
+        
+        cur.execute(
+            "SELECT id, usage_count, tokens_used FROM llm_usage WHERE user_id = ? AND llm_name = ?",
+            (user_id, llm_name)
+        )
+        row = cur.fetchone()
+        
+        if row:
+            new_count = row["usage_count"] + 1
+            new_tokens = row["tokens_used"] + tokens_used
+            cur.execute(
+                """
+                UPDATE llm_usage 
+                SET usage_count = ?, tokens_used = ?, last_used = ?, updated_at = ?
+                WHERE user_id = ? AND llm_name = ?
+                """,
+                (new_count, new_tokens, now, now, user_id, llm_name)
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO llm_usage (user_id, llm_name, usage_count, tokens_used, last_used, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?, ?, ?)
+                """,
+                (user_id, llm_name, tokens_used, now, now, now)
+            )
+        conn.commit()
+        conn.close()
+
+    def get_user_llm_stats(self, user_id: int) -> list:
+        """Get LLM usage statistics for a user"""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT llm_name, usage_count, tokens_used, last_used, created_at
+            FROM llm_usage
+            WHERE user_id = ?
+            ORDER BY usage_count DESC
+            """,
+            (user_id,)
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+
+    def get_users_by_college_with_llm_stats(self, college: str = None):
+        """Get all users (optionally filtered by college) with their LLM usage stats"""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        
+        if college:
+            cur.execute(
+                """
+                SELECT 
+                    u.id, u.full_name, u.email, u.college, u.profession, 
+                    u.ai_tool_usage, u.is_verified, u.created_at,
+                    COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
+                    COALESCE(SUM(l.tokens_used), 0) as total_tokens,
+                    COUNT(DISTINCT l.llm_name) as distinct_llms,
+                    GROUP_CONCAT(l.llm_name || ':' || l.usage_count, '; ') as llm_breakdown
+                FROM users u
+                LEFT JOIN llm_usage l ON u.id = l.user_id
+                WHERE u.college = ?
+                GROUP BY u.id
+                ORDER BY u.full_name
+                """,
+                (college,)
+            )
+        else:
+            cur.execute(
+                """
+                SELECT 
+                    u.id, u.full_name, u.email, u.college, u.profession, 
+                    u.ai_tool_usage, u.is_verified, u.created_at,
+                    COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
+                    COALESCE(SUM(l.tokens_used), 0) as total_tokens,
+                    COUNT(DISTINCT l.llm_name) as distinct_llms,
+                    GROUP_CONCAT(l.llm_name || ':' || l.usage_count, '; ') as llm_breakdown
+                FROM users u
+                LEFT JOIN llm_usage l ON u.id = l.user_id
+                GROUP BY u.id
+                ORDER BY u.college, u.full_name
+                """
+            )
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+
+    def get_all_colleges(self):
+        """Get list of unique colleges"""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT DISTINCT college FROM users 
+            WHERE college IS NOT NULL AND college <> ''
+            ORDER BY college
+            """
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return [row["college"] for row in rows]
+
+    def get_llm_usage_summary(self):
+        """Get overall LLM usage statistics across all users"""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        
+        cur.execute(
+            """
+            SELECT 
+                llm_name,
+                COUNT(DISTINCT user_id) as num_users,
+                SUM(usage_count) as total_calls,
+                SUM(tokens_used) as total_tokens,
+                AVG(usage_count) as avg_calls_per_user
+            FROM llm_usage
+            GROUP BY llm_name
+            ORDER BY total_calls DESC
+            """
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+
+    def export_users_to_list(self, college: str = None) -> list[dict]:
+        """Export users data to list of dictionaries for CSV/Excel export"""
+        rows = self.get_users_by_college_with_llm_stats(college)
+        result = []
+        for row in rows:
+            result.append({
+                'ID': row['id'],
+                'Full Name': row['full_name'],
+                'Email': row['email'],
+                'College': row['college'],
+                'Profession': row['profession'],
+                'AI Tool Usage': row['ai_tool_usage'],
+                'Verified': 'Yes' if row['is_verified'] else 'No',
+                'Registration Date': row['created_at'],
+                'Total LLM Calls': row['total_llm_calls'],
+                'Total Tokens': row['total_tokens'],
+                'Distinct LLMs Used': row['distinct_llms'],
+                'LLM Breakdown': row['llm_breakdown'] or 'None'
+            })
+        return result

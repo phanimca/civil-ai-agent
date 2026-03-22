@@ -18,6 +18,7 @@ from data.repository import SQLiteRepository
 from services.auth_service import AuthService
 from services.email_service import EmailService
 from services.inspection_service import InspectionService
+from ui.admin_dashboard import render_admin_dashboard
 
 
 class CivilAIStreamlitApp:
@@ -1205,51 +1206,9 @@ class CivilAIStreamlitApp:
         if user["role"] != "admin":
             st.warning("Admin access required.")
             return
-
-        self._render_page_intro(
-            kicker="Admin",
-            title="Manage users and access details.",
-            copy="Review registered accounts, verification state, and assigned roles from one compact admin console.",
-            chips=[
-                "Role visibility",
-                "Verification status",
-                "Account timeline",
-                "Quick user audit",
-            ],
-        )
-
-        rows = self.repository.list_users_for_admin()
-        if not rows:
-            st.info("No users found.")
-            return
-
-        with self._surface_container("admin_users_panel"):
-            st.markdown('<div class="panel-title">Admin Console</div>', unsafe_allow_html=True)
-            st.markdown('<div class="panel-note">User registry with role and verification metadata.</div>', unsafe_allow_html=True)
-            for row in rows:
-                st.markdown(
-                    f"""
-                    <div class="result-row">
-                        <div>
-                            <div class="result-name">#{row['id']} - {row['full_name']}</div>
-                            <div class="result-date">{row['email']}</div>
-                        </div>
-                        <div>
-                            <div class="result-label">Role</div>
-                            <div class="result-metric">{row['role']}</div>
-                        </div>
-                        <div>
-                            <div class="result-label">Verified</div>
-                            <div class="result-metric">{"Yes" if row['is_verified'] else "No"}</div>
-                        </div>
-                        <div>
-                            <div class="result-label">Created</div>
-                            <div class="result-metric">{row['created_at']}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        
+        # Use the new comprehensive admin dashboard
+        render_admin_dashboard(self.repository, user)
 
     def _render_nav(self, user) -> None:
         options = ["home"]

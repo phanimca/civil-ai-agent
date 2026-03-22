@@ -10,3 +10,7 @@ huggingface_hub
 python-dotenv
 resend
 sib-api-v3-sdk
+pandas
+gspread
+google-auth-oauthlib
+openpyxl
