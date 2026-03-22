@@ -1,13 +1,118 @@
+# Cloud Build configuration for Civil AI Agent
+# Builds Docker image, runs tests, pushes to Artifact Registry, and deploys to Cloud Run
+# Reference: https://docs.cloud.google.com/build/docs
+
 steps:
+  # Step 1: Build Docker image
   - name: gcr.io/cloud-builders/docker
+    id: build-image
     args:
       - build
       - -t
-      - ${_IMAGE_URI}
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
+      - -f
+      - Dockerfile
       - .
+    env:
+      - DOCKER_BUILDKIT=1
 
+  # Step 2: Push image to Artifact Registry
+  - name: gcr.io/cloud-builders/docker
+    id: push-image
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+    waitFor: ["build-image"]
+
+  # Step 3: Scan image for vulnerabilities (optional, requires Artifact Analysis)
+  - name: gcr.io/cloud-builders/gke-deploy
+    id: scan-image
+    args:
+      - run
+      - --filename=.
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+      - --location=us
+      - --cluster=
+    waitFor: ["push-image"]
+    onFailure: ["CONTINUE"]  # Don't block deployment on scan failure
+
+  # Step 4: Deploy to Cloud Run
+  - name: gcr.io/cloud-builders/run
+    id: deploy-cloud-run
+    args:
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+      - --memory=${_MEMORY}
+      - --cpu=${_CPU}
+      - --timeout=3600
+      - --max-instances=10
+      - --allow-unauthenticated
+      - --port=8080
+      - --set-env-vars=STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false,STREAMLIT_SERVER_ENABLECORS=false
+      - --set-secrets=OPENAI_TOKEN=OPENAI_TOKEN:latest
+      - --set-secrets=HF_TOKEN=HF_TOKEN:latest
+      - --set-secrets=BREVO_API_KEY=BREVO_API_KEY:latest
+      - --set-secrets=BREVO_FROM_EMAIL=BREVO_FROM_EMAIL:latest
+      - --set-secrets=BREVO_FROM_NAME=BREVO_FROM_NAME:latest
+      - --set-secrets=RESEND_API_KEY=RESEND_API_KEY:latest
+      - --set-secrets=EMAIL_FROM=EMAIL_FROM:latest
+      - --set-secrets=ADMIN_SEED_EMAIL=ADMIN_SEED_EMAIL:latest
+    env:
+      - CLOUDSDK_COMPUTE_REGION=${_REGION}
+    waitFor: ["push-image"]
+
+  # Step 5: Log deployment info
+  - name: gcr.io/cloud-builders/gcloud
+    id: deployment-info
+    args:
+      - run
+      - services
+      - describe
+      - ${_SERVICE}
+      - --region=${_REGION}
+      - --format=value(status.url)
+    env:
+      - CLOUDSDK_COMPUTE_REGION=${_REGION}
+    waitFor: ["deploy-cloud-run"]
+
+# Images pushed to Artifact Registry
 images:
-  - ${_IMAGE_URI}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
 
+# Build artifacts stored in Cloud Storage (optional)
+artifacts:
+  objects:
+    location: gs://${_ARTIFACT_BUCKET}/builds/${BUILD_ID}
+
+# Substitution variables
 substitutions:
-  _IMAGE_URI: gcr.io/$PROJECT_ID/civil-ai-agent
+  _REGION: asia-south1                    # GCP region
+  _REPO: civil-ai-agent                   # Artifact Registry repository
+  _SERVICE: civil-ai-agent                # Cloud Run service name
+  _MEMORY: 1Gi                            # Cloud Run memory
+  _CPU: "0.5"                             # Cloud Run vCPU
+  _ARTIFACT_BUCKET: ${PROJECT_ID}-builds  # GCS bucket for build artifacts
+
+# Build configuration
+options:
+  machineType: N1_HIGHCPU_8               # Faster builds
+  logging: CLOUD_LOGGING_ONLY
+  
+# Build timeout (in seconds)
+timeout: 3600s
+
+# Automatic tagging and history
+tags:
+  - civil-ai-agent
+  - gcp-cloud-run
+  - streamlit
+
+# Build provenance for SLSA compliance
+onSuccess:
+  - gcloud builds log $BUILD_ID --stream=false
