@@ -26,6 +26,16 @@ class SQLiteRepository:
         conn.row_factory = sqlite3.Row
         return conn
 
+    @staticmethod
+    def _table_columns(cur: sqlite3.Cursor, table_name: str) -> set[str]:
+        cur.execute(f"PRAGMA table_info({table_name})")
+        return {str(row[1]) for row in cur.fetchall()}
+
+    def _ensure_column(self, cur: sqlite3.Cursor, table_name: str, column_name: str, definition: str) -> None:
+        if column_name in self._table_columns(cur, table_name):
+            return
+        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
     def init_db(self) -> None:
         self.ensure_dirs()
         conn = self.get_conn()
@@ -35,12 +45,19 @@ class SQLiteRepository:
             """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                full_name TEXT NOT NULL,
+                first_name TEXT,
+                last_name TEXT,
+                full_name TEXT NOT NULL DEFAULT '',
                 email TEXT UNIQUE NOT NULL,
                 mobile TEXT,
                 college TEXT,
+                profession TEXT,
+                python_knowledge TEXT,
+                ai_tool_usage TEXT,
+                ai_awareness TEXT,
                 role TEXT NOT NULL DEFAULT 'user',
                 is_verified INTEGER NOT NULL DEFAULT 0,
+                registration_completed INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
@@ -104,6 +121,26 @@ class SQLiteRepository:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_inspections_user ON inspections(user_id)")
 
+        self._ensure_column(cur, "users", "first_name", "TEXT")
+        self._ensure_column(cur, "users", "last_name", "TEXT")
+        self._ensure_column(cur, "users", "profession", "TEXT")
+        self._ensure_column(cur, "users", "python_knowledge", "TEXT")
+        self._ensure_column(cur, "users", "ai_tool_usage", "TEXT")
+        self._ensure_column(cur, "users", "ai_awareness", "TEXT")
+        self._ensure_column(cur, "users", "registration_completed", "INTEGER NOT NULL DEFAULT 0")
+
+        cur.execute(
+            """
+            UPDATE users
+            SET full_name = TRIM(COALESCE(full_name, '')),
+                registration_completed = CASE
+                    WHEN registration_completed = 1 THEN 1
+                    WHEN TRIM(COALESCE(full_name, '')) <> '' THEN 1
+                    ELSE 0
+                END
+            """
+        )
+
         if self.admin_seed_email:
             cur.execute("SELECT id FROM users WHERE email = ?", (self.admin_seed_email,))
             admin_row = cur.fetchone()
@@ -139,20 +176,34 @@ class SQLiteRepository:
                 SET full_name = COALESCE(NULLIF(?, ''), full_name),
                     mobile = COALESCE(NULLIF(?, ''), mobile),
                     college = COALESCE(NULLIF(?, ''), college),
+                    registration_completed = CASE
+                        WHEN COALESCE(NULLIF(?, ''), full_name) <> '' THEN 1
+                        ELSE registration_completed
+                    END,
                     updated_at = ?
                 WHERE id = ?
                 """,
-                (full_name, mobile, college, now, row["id"]),
+                (full_name, mobile, college, full_name, now, row["id"]),
             )
             user_id = row["id"]
         else:
             role = "admin" if self.admin_seed_email and email == self.admin_seed_email else "user"
             cur.execute(
                 """
-                INSERT INTO users (full_name, email, mobile, college, role, is_verified, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                INSERT INTO users (
+                    full_name,
+                    email,
+                    mobile,
+                    college,
+                    role,
+                    is_verified,
+                    registration_completed,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
                 """,
-                (full_name, email, mobile, college, role, now, now),
+                (full_name, email, mobile, college, role, 1 if full_name.strip() else 0, now, now),
             )
             user_id = cur.lastrowid
 
@@ -178,6 +229,88 @@ class SQLiteRepository:
         row = cur.fetchone()
         conn.close()
         return row
+
+    def ensure_user(self, email: str) -> int:
+        email = self.normalize_email(email)
+        existing = self.find_user_by_email(email)
+        if existing:
+            return int(existing["id"])
+
+        now = self.utc_now_str()
+        role = "admin" if self.admin_seed_email and email == self.admin_seed_email else "user"
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO users (
+                full_name,
+                email,
+                mobile,
+                college,
+                role,
+                is_verified,
+                registration_completed,
+                created_at,
+                updated_at
+            )
+            VALUES ('', ?, '', '', ?, 0, 0, ?, ?)
+            """,
+            (email, role, now, now),
+        )
+        user_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        return int(user_id)
+
+    def update_user_registration(
+        self,
+        user_id: int,
+        first_name: str,
+        last_name: str,
+        mobile: str,
+        college: str,
+        profession: str,
+        python_knowledge: str,
+        ai_tool_usage: str,
+        ai_awareness: str,
+    ) -> None:
+        now = self.utc_now_str()
+        full_name = " ".join(part for part in [first_name.strip(), last_name.strip()] if part).strip()
+
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE users
+            SET first_name = ?,
+                last_name = ?,
+                full_name = ?,
+                mobile = ?,
+                college = ?,
+                profession = ?,
+                python_knowledge = ?,
+                ai_tool_usage = ?,
+                ai_awareness = ?,
+                registration_completed = 1,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                first_name.strip(),
+                last_name.strip(),
+                full_name,
+                mobile.strip(),
+                college.strip(),
+                profession.strip(),
+                python_knowledge.strip(),
+                ai_tool_usage.strip(),
+                ai_awareness.strip(),
+                now,
+                user_id,
+            ),
+        )
+        conn.commit()
+        conn.close()
 
     def get_latest_code(self, user_id: int, code: str):
         conn = self.get_conn()

@@ -17,10 +17,8 @@ class AuthService:
     def normalize_email(email: str) -> str:
         return SQLiteRepository.normalize_email(email)
 
-    def validate_profile(self, full_name: str, email: str, mobile: str, college: str) -> list[str]:
+    def validate_email(self, email: str) -> list[str]:
         errors = []
-        if not (full_name or "").strip():
-            errors.append("Name is required.")
 
         email_norm = self.normalize_email(email)
         if not email_norm:
@@ -28,12 +26,44 @@ class AuthService:
         elif not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email_norm):
             errors.append("Email format looks invalid.")
 
+        return errors
+
+    def validate_registration_profile(
+        self,
+        first_name: str,
+        last_name: str,
+        mobile: str,
+        college: str,
+        profession: str,
+        python_knowledge: str,
+        ai_tool_usage: str,
+        ai_awareness: str,
+    ) -> list[str]:
+        errors = []
+        if not (first_name or "").strip():
+            errors.append("First name is required.")
+
+        if not (last_name or "").strip():
+            errors.append("Last name is required.")
+
         digits = "".join(ch for ch in (mobile or "") if ch.isdigit())
         if len(digits) < 10 or len(digits) > 15:
             errors.append("Mobile must contain 10-15 digits.")
 
         if not (college or "").strip():
-            errors.append("College is required.")
+            errors.append("College name is required.")
+
+        if profession not in {"Student", "Faculty Member"}:
+            errors.append("Profession is required.")
+
+        if python_knowledge not in {"No", "Beginner", "Advanced", "Expert"}:
+            errors.append("Python knowledge selection is required.")
+
+        if ai_tool_usage not in {"No", "EveryDay", "Once In a While"}:
+            errors.append("AI tool usage selection is required.")
+
+        if not (ai_awareness or "").strip():
+            errors.append("Please tell us what you know about AI.")
 
         return errors
 
@@ -54,7 +84,7 @@ class AuthService:
         remaining = int((dt - datetime.now(timezone.utc)).total_seconds())
         return max(0, remaining)
 
-    def verify_code_and_create_session(self, email: str, code: str) -> tuple[bool, str, str | None]:
+    def verify_code(self, email: str, code: str):
         email_norm = self.normalize_email(email)
         now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -70,9 +100,21 @@ class AuthService:
         if exp_dt < now_dt:
             return False, "Verification code expired.", None
 
+        return True, "Verification successful.", user
+
+    def create_session_for_user(self, user_id: int) -> str:
+        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
+
         session_token = secrets.token_urlsafe(32)
         token_hash = SQLiteRepository.hash_token(session_token)
         expires_at = (now_dt + timedelta(hours=self.session_hours)).strftime("%Y-%m-%d %H:%M:%S")
-        self.repository.complete_login(user["id"], token_hash, expires_at)
+        self.repository.complete_login(user_id, token_hash, expires_at)
 
-        return True, "Login successful.", session_token
+        return session_token
+
+    def verify_code_and_create_session(self, email: str, code: str) -> tuple[bool, str, str | None]:
+        ok, msg, user = self.verify_code(email, code)
+        if not ok or not user:
+            return ok, msg, None
+
+        return True, "Login successful.", self.create_session_for_user(int(user["id"]))

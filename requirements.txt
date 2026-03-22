@@ -1,6 +1,7 @@
 opencv-python-headless>=4.8.0
 ultralytics
 streamlit
+streamlit-extras
 pillow
 numpy
 reportlab
