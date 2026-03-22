@@ -8,7 +8,7 @@ from data.repository import SQLiteRepository
 
 
 class AuthService:
-    ADMIN_DEFAULT_OTP = "123000"
+    ADMIN_DEFAULT_OTP = "123123"  # For admin users, bypass OTP verification with this code.
 
     def __init__(self, repository: SQLiteRepository, code_exp_minutes: int, session_hours: int) -> None:
         self.repository = repository
