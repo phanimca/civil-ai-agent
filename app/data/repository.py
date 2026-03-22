@@ -152,6 +152,10 @@ class SQLiteRepository:
             """
             UPDATE users
             SET full_name = TRIM(COALESCE(full_name, '')),
+                college = CASE
+                    WHEN college IS NULL OR TRIM(college) = '' THEN ''
+                    ELSE UPPER(TRIM(college))
+                END,
                 registration_completed = CASE
                     WHEN registration_completed = 1 THEN 1
                     WHEN TRIM(COALESCE(full_name, '')) <> '' THEN 1
@@ -177,11 +181,16 @@ class SQLiteRepository:
         return (email or "").strip().lower()
 
     @staticmethod
+    def normalize_college(college: str) -> str:
+        return (college or "").strip().upper()
+
+    @staticmethod
     def hash_token(token: str) -> str:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     def create_or_update_user(self, full_name: str, email: str, mobile: str, college: str) -> int:
         email = self.normalize_email(email)
+        college = self.normalize_college(college)
         now = self.utc_now_str()
         conn = self.get_conn()
         cur = conn.cursor()
@@ -294,6 +303,7 @@ class SQLiteRepository:
         ai_awareness: str,
     ) -> None:
         now = self.utc_now_str()
+        college = self.normalize_college(college)
         full_name = " ".join(part for part in [first_name.strip(), last_name.strip()] if part).strip()
 
         conn = self.get_conn()
@@ -319,7 +329,7 @@ class SQLiteRepository:
                 last_name.strip(),
                 full_name,
                 mobile.strip(),
-                college.strip(),
+                college,
                 profession.strip(),
                 python_knowledge.strip(),
                 ai_tool_usage.strip(),
@@ -528,8 +538,7 @@ class SQLiteRepository:
             cur.execute(
                 """
                 SELECT 
-                    u.id, u.full_name, u.email, u.college, u.profession, 
-                    u.ai_tool_usage, u.is_verified, u.created_at,
+                    u.*,
                     COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
                     COALESCE(SUM(l.tokens_used), 0) as total_tokens,
                     COUNT(DISTINCT l.llm_name) as distinct_llms,
@@ -546,8 +555,7 @@ class SQLiteRepository:
             cur.execute(
                 """
                 SELECT 
-                    u.id, u.full_name, u.email, u.college, u.profession, 
-                    u.ai_tool_usage, u.is_verified, u.created_at,
+                    u.*,
                     COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
                     COALESCE(SUM(l.tokens_used), 0) as total_tokens,
                     COUNT(DISTINCT l.llm_name) as distinct_llms,
@@ -606,13 +614,21 @@ class SQLiteRepository:
         for row in rows:
             result.append({
                 'ID': row['id'],
+                'First Name': row['first_name'],
+                'Last Name': row['last_name'],
                 'Full Name': row['full_name'],
                 'Email': row['email'],
+                'Mobile': row['mobile'],
                 'College': row['college'],
                 'Profession': row['profession'],
+                'Python Knowledge': row['python_knowledge'],
                 'AI Tool Usage': row['ai_tool_usage'],
+                'AI Awareness': row['ai_awareness'],
+                'Role': row['role'],
                 'Verified': 'Yes' if row['is_verified'] else 'No',
+                'Registration Completed': 'Yes' if row['registration_completed'] else 'No',
                 'Registration Date': row['created_at'],
+                'Last Updated': row['updated_at'],
                 'Total LLM Calls': row['total_llm_calls'],
                 'Total Tokens': row['total_tokens'],
                 'Distinct LLMs Used': row['distinct_llms'],

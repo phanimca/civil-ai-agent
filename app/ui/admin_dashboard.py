@@ -8,8 +8,8 @@ from typing import Optional
 
 def render_admin_dashboard(repo, user):
     """Render the admin dashboard with user and LLM analytics"""
-    
-    if user.get('role') != 'admin':
+
+    if user["role"] != "admin":
         st.error("⛔ Access Denied. Admin access required.")
         return
     
@@ -68,37 +68,23 @@ def render_users_by_college(repo):
     
     st.divider()
     
-    # Convert to DataFrame for display
-    df_display = pd.DataFrame([
-        {
-            'Full Name': u['full_name'],
-            'Email': u['email'],
-            'College': u['college'] or '-',
-            'Profession': u['profession'] or '-',
-            'AI Tool Usage': u['ai_tool_usage'] or '-',
-            'Verified': '✅' if u['is_verified'] else '❌',
-            'LLM Calls': u['total_llm_calls'],
-            'Tokens Used': u['total_tokens'],
-            'LLMs Used': u['distinct_llms'],
-            'Registered': u['created_at'][:10]
-        }
-        for u in users_data
-    ])
+    # Render the same full dataset used by CSV/Excel/JSON/Sheets exports.
+    df_export = pd.DataFrame(repo.export_users_to_list(college_filter))
+    df_display = df_export.copy()
     
     st.dataframe(
         df_display,
         use_container_width=True,
         hide_index=True,
         column_config={
-            'LLM Calls': st.column_config.NumberColumn(format="%d"),
-            'Tokens Used': st.column_config.NumberColumn(format="%d"),
+            'Total LLM Calls': st.column_config.NumberColumn(format="%d"),
+            'Total Tokens': st.column_config.NumberColumn(format="%d"),
         }
     )
     
     # Export CSV
     csv_buffer = BytesIO()
-    df_export = repo.export_users_to_list(college_filter)
-    df_csv = pd.DataFrame(df_export)
+    df_csv = df_export
     df_csv.to_csv(csv_buffer, index=False)
     csv_buffer.seek(0)
     
@@ -253,6 +239,8 @@ def render_excel_export(df: pd.DataFrame, college: str):
     
     # Requires openpyxl
     try:
+        import openpyxl
+
         buffer = BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Users Report', index=False)
