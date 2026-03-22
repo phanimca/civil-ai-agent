@@ -719,7 +719,8 @@ class CivilAIStreamlitApp:
                 justify-content: space-between;
                 align-items: center;
                 gap: 12px;
-                padding: 8px 0 12px 0;
+                padding: 12px 0 16px 0;
+                min-height: 118px;
                 flex-wrap: wrap;
             }
             #cai-header-root .cai-header-left {
@@ -756,7 +757,8 @@ class CivilAIStreamlitApp:
             @media (min-width: 769px) and (max-width: 1366px) {
                 #cai-header-root .cai-header-wrap {
                     gap: 10px;
-                    padding: 6px 0 10px 0;
+                    padding: 10px 0 14px 0;
+                    min-height: 108px;
                 }
                 #cai-header-root .cai-header-left {
                     min-width: 260px;
@@ -773,6 +775,7 @@ class CivilAIStreamlitApp:
                 #cai-header-root .cai-header-wrap {
                     flex-direction: column;
                     align-items: flex-start;
+                    min-height: 0;
                     flex-wrap: wrap;
                 }
                 #cai-header-root .cai-header-right {
