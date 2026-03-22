@@ -4,6 +4,7 @@ import csv
 import io
 import os
 import time
+import base64
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -277,18 +278,18 @@ class CivilAIStreamlitApp:
             """
             <style>
                 .stApp .block-container {
-                    max-width: 1160px;
+                    max-width: 1400px;
                     padding-top: 0.2rem;
                     padding-bottom: 0.3rem;
                 }
                 [data-testid="stVerticalBlock"] {
-                    gap: 0.34rem;
+                    gap: 0.6rem;
                 }
                 div[data-testid="stHorizontalBlock"] {
                     gap: 0.55rem;
                 }
                 .stApp p {
-                    margin-bottom: 0.35rem;
+                    margin-bottom: 0.6rem;
                 }
                 .surface-hero {
                     border: 1px solid #dbe4f0;
@@ -313,10 +314,10 @@ class CivilAIStreamlitApp:
                     text-transform: uppercase;
                 }
                 .surface-title {
-                    margin: 10px 0 8px 0;
+                    margin: 12px 0 10px 0;
                     color: #0f172a;
                     font-size: 26px;
-                    line-height: 1.2;
+                    line-height: 1.3;
                     font-weight: 800;
                 }
                 .surface-copy {
@@ -354,10 +355,10 @@ class CivilAIStreamlitApp:
                     line-height: 1.35;
                 }
                 .snapshot-copy {
-                    margin: 0 0 8px 0;
+                    margin: 0 0 10px 0;
                     color: #334155;
                     font-size: 12px;
-                    line-height: 1.45;
+                    line-height: 1.6;
                 }
                 .snapshot-list {
                     margin: 0;
@@ -367,7 +368,7 @@ class CivilAIStreamlitApp:
                     line-height: 1.5;
                 }
                 .snapshot-list li {
-                    margin: 0 0 3px 0;
+                    margin: 0 0 6px 0;
                 }
                 .snapshot-footnote {
                     margin: 6px 0 0 0;
@@ -447,6 +448,24 @@ class CivilAIStreamlitApp:
                     }
                     .result-row {
                         grid-template-columns: 1fr;
+                    }
+                }
+                @media (min-width: 901px) and (max-width: 1366px) {
+                    .surface-hero {
+                        padding: 12px 12px;
+                    }
+                    .surface-title {
+                        font-size: 24px;
+                        line-height: 1.25;
+                        margin: 10px 0 8px 0;
+                    }
+                    .surface-copy {
+                        font-size: 12px;
+                        line-height: 1.5;
+                    }
+                    .surface-chip {
+                        font-size: 10.5px;
+                        padding: 6px 7px;
                     }
                 }
             </style>
@@ -676,28 +695,106 @@ class CivilAIStreamlitApp:
         auth_dialog()
 
     def _render_header(self) -> None:
-        title_col, right_col = st.columns([1.55, 0.55], vertical_alignment="center")
+        st.markdown(
+            """
+            <style>
+            #cai-header-root .cai-header-wrap {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 0 12px 0;
+                flex-wrap: wrap;
+            }
+            #cai-header-root .cai-header-left {
+                flex: 1;
+                min-width: 0;
+            }
+            #cai-header-root .cai-header-title {
+                font-size: clamp(22px, 2vw, 26px);
+                font-weight: 800;
+                color: #0f172a;
+                margin: 0;
+                line-height: 1.2;
+                word-break: break-word;
+                display: block;
+                width: 100%;
+            }
+            #cai-header-root .cai-header-sub {
+                font-size: 13px;
+                color: #64748b;
+                margin-top: 4px;
+            }
+            #cai-header-root .cai-header-right {
+                flex-shrink: 0;
+                margin-left: auto;
+            }
+            #cai-header-root .cai-header-img {
+                max-height: 80px;
+                width: auto;
+                max-width: 180px;
+                object-fit: contain;
+                border-radius: 12px;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            }
+            @media (min-width: 769px) and (max-width: 1366px) {
+                #cai-header-root .cai-header-wrap {
+                    gap: 10px;
+                    padding: 6px 0 10px 0;
+                }
+                #cai-header-root .cai-header-left {
+                    min-width: 260px;
+                }
+                #cai-header-root .cai-header-sub {
+                    font-size: 12px;
+                }
+                #cai-header-root .cai-header-img {
+                    max-height: 72px;
+                    max-width: min(22vw, 180px);
+                }
+            }
+            @media (max-width: 768px) {
+                #cai-header-root .cai-header-wrap {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    flex-wrap: wrap;
+                }
+                #cai-header-root .cai-header-right {
+                    margin-top: 8px;
+                }
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        with title_col:
-            if os.path.exists(self.settings.header_logo_path):
-                st.image(self.settings.header_logo_path, width=95)
-            st.markdown(
-                '<h2 style="margin:0 0 4px 0;color:#0f172a;font-size:22px;line-height:1.18;font-weight:800;">'
-                "Phani's Civil Inspection AI Agent"
-                "</h2>",
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                '<p style="font-size:10px;line-height:1.35;color:#64748b;margin-top:0;margin-bottom:4px;">'
-                "Demo for B.Tech Civil students | Designed by Phani"
-                "</p>",
-                unsafe_allow_html=True,
+        ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.png")
+        image_html = ""
+        if os.path.exists(ai_img_path):
+            image_html = (
+                f"<img src='data:image/png;base64,{self._img_to_base64(ai_img_path)}' "
+                "class='cai-header-img' alt='Civil engineering AI visual'/>"
             )
 
-        with right_col:
-            ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.png")
-            if os.path.exists(ai_img_path):
-                st.image(ai_img_path, width=180)
+        st.markdown(
+            f"""
+            <div id="cai-header-root">
+                <div class="cai-header-wrap">
+                    <div class="cai-header-left">
+                        <div class="cai-header-title">Phani's Civil Inspection AI Agent</div>
+                        <div class="cai-header-sub">Demo for B.Tech Civil students | Designed by Phani</div>
+                    </div>
+                    <div class="cai-header-right">{image_html}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    def _img_to_base64(self, path: str) -> str:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
 
     @staticmethod
     def _render_footer() -> None:
@@ -1165,6 +1262,7 @@ class CivilAIStreamlitApp:
             self._open_auth_dialog("register")
 
         self._render_header()
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
         self._render_nav(user)
 
         page = st.session_state["page"]
