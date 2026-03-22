@@ -1,0 +1,15 @@
+opencv-python-headless==4.10.0.84
+streamlit
+streamlit-extras
+pillow
+numpy<2
+reportlab
+openai
+huggingface_hub
+python-dotenv
+resend
+sib-api-v3-sdk
+pandas
+gspread
+google-auth-oauthlib
+openpyxl

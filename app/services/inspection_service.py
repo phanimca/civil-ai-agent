@@ -71,6 +71,13 @@ class InspectionService:
                 "Unable to load crack-detection model. Check runtime Python version and OpenCV wheel support."
             ) from exc
 
+    def has_detection_stack(self) -> tuple[bool, str | None]:
+        try:
+            from model import load_model  # noqa: F401
+            return True, None
+        except Exception as exc:
+            return False, str(exc)
+
     def run_detection(self, model, image_np: np.ndarray):
         return model(image_np)[0]
 

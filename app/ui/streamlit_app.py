@@ -98,6 +98,11 @@ class CivilAIStreamlitApp:
     def _get_model(_self, hf_token: str):
         return _self.inspection_service.load_detection_model()
 
+    @st.cache_data
+    def _has_detection_stack(_self) -> bool:
+        available, _ = _self.inspection_service.has_detection_stack()
+        return available
+
     @staticmethod
     def _style_report(text: str) -> str:
         return f"""
@@ -901,6 +906,7 @@ class CivilAIStreamlitApp:
         self._open_auth_dialog("email")
 
     def _render_landing(self, user) -> None:
+        inspection_available = self._has_detection_stack()
         rows = self.repository.recent_inspections(user["id"], limit=5)
         total_recent_cracks = sum(row["total_cracks"] for row in rows)
         total_recent_high = sum(row["high_severity"] for row in rows)
@@ -934,10 +940,14 @@ class CivilAIStreamlitApp:
                 snapshot_note = (
                     "Admin mode is available from the Admin tab."
                     if user["role"] == "admin"
-                    else "Open Inspect to upload new infrastructure images."
+                    else (
+                        "Open Inspect to upload new infrastructure images."
+                        if inspection_available
+                        else "Inspect is hidden on this deployment because the ML detection stack is not installed."
+                    )
                 )
                 st.markdown(
-                    '<p class="snapshot-copy">Use the navigation tabs to inspect new images, review report history, and download PDFs.</p>'
+                    f'<p class="snapshot-copy">Use the navigation tabs to {'inspect new images, ' if inspection_available else ''}review report history, and download PDFs.</p>'
                     '<ul class="snapshot-list">'
                     f'<li>Recent crack detections analysed: {total_recent_cracks}</li>'
                     f'<li>High severity detections in recent reports: {total_recent_high}</li>'
@@ -951,7 +961,11 @@ class CivilAIStreamlitApp:
             with self._surface_container("dashboard_recent_inspections"):
                 st.markdown('<div class="panel-title">Recent Inspections</div>', unsafe_allow_html=True)
                 if not rows:
-                    st.info("No inspections yet. Open the Inspect page from the tabs above.")
+                    st.info(
+                        "No inspections yet. Open the Inspect page from the tabs above."
+                        if inspection_available
+                        else "No inspections yet. This deployment does not expose the Inspect page because the ML stack is unavailable."
+                    )
                 else:
                     for row in rows:
                         st.markdown(
@@ -994,7 +1008,6 @@ class CivilAIStreamlitApp:
         )
 
     def _render_inspect(self, user) -> None:
-        model = self._get_model(self.settings.hf_token)
         self._render_page_intro(
             kicker="Inspect",
             title="Analyse new infrastructure images.",
@@ -1006,6 +1019,18 @@ class CivilAIStreamlitApp:
                 "PDF report export",
             ],
         )
+
+        try:
+            model = self._get_model(self.settings.hf_token)
+        except Exception as exc:
+            with self._surface_container("inspect_model_unavailable"):
+                st.markdown('<div class="panel-title">Inspection Model Unavailable</div>', unsafe_allow_html=True)
+                st.warning(
+                    "This deployment does not include the YOLO detection stack required for image inspection. "
+                    "Use a full Python host for model inference, or install the optional ML dependencies before running this page."
+                )
+                st.caption(str(exc))
+            return
 
         with self._surface_container("inspect_upload_panel"):
             st.markdown('<div class="panel-title">Upload Inspection Images</div>', unsafe_allow_html=True)
@@ -1224,6 +1249,7 @@ class CivilAIStreamlitApp:
 
     def _render_nav(self, user) -> None:
         options = ["home"]
+        inspection_available = self._has_detection_stack()
         labels = {
             "home": "Home",
             "landing": "Dashboard",
@@ -1233,7 +1259,9 @@ class CivilAIStreamlitApp:
         }
 
         if user:
-            options = ["landing", "inspect", "history", "home"]
+            options = ["landing", "history", "home"]
+            if inspection_available:
+                options.insert(1, "inspect")
             if user["role"] == "admin":
                 options.append("admin")
 
@@ -1296,6 +1324,9 @@ class CivilAIStreamlitApp:
         self._render_nav(user)
 
         page = st.session_state["page"]
+        if page == "inspect" and not self._has_detection_stack():
+            st.session_state["page"] = "landing" if user else "home"
+            page = st.session_state["page"]
         if page == "home":
             self._render_home()
         elif page == "auth":
