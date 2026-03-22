@@ -1,0 +1,35 @@
+# Google Cloud deployment configuration for Civil AI Agent
+
+PROJECT_ID=civil-ai-agent
+REGION=asia-south1
+SERVICE_NAME=civil-ai-agent
+IMAGE_REPOSITORY=civil-ai-agent
+
+# Cloud Run settings
+MEMORY=1Gi
+CPU=0.5
+TIMEOUT=3600
+MAX_INSTANCES=10
+
+# Artifact Registry
+ARTIFACT_REGISTRY_REGION=asia-south1
+
+# Secrets managed in Secret Manager (defined below)
+SECRETS=(
+  "OPENAI_TOKEN"
+  "HF_TOKEN"
+  "BREVO_API_KEY"
+  "BREVO_FROM_EMAIL"
+  "BREVO_FROM_NAME"
+  "RESEND_API_KEY"
+  "EMAIL_FROM"
+  "ADMIN_SEED_EMAIL"
+)
+
+# Environment variables (non-secret)
+ENV_VARS=(
+  "STREAMLIT_SERVER_HEADLESS=true"
+  "STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false"
+  "STREAMLIT_SERVER_ENABLECORS=false"
+  "STREAMLIT_CLIENT_SHOWSTREAMLIITDEPLOYMENTMESSAGE=false"
+)

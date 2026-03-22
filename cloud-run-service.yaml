@@ -1,0 +1,74 @@
+# Google Cloud Run service configuration template
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: civil-ai-agent
+  namespace: default
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/minScale: "0"
+    spec:
+      serviceAccountName: civil-ai-agent
+      timeoutSeconds: 3600
+      containers:
+      - name: service
+        image: asia-south1-docker.pkg.dev/civil-ai-agent/civil-ai-agent/civil-ai-agent:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: "0.5"
+        env:
+        # Non-secret environment variables
+        - name: STREAMLIT_SERVER_HEADLESS
+          value: "true"
+        - name: STREAMLIT_SERVER_ENABLEXSRFPROTECTION
+          value: "false"
+        - name: STREAMLIT_SERVER_ENABLECORS
+          value: "false"
+        # Secrets from Secret Manager
+        - name: OPENAI_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: OPENAI_TOKEN
+              key: latest
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: HF_TOKEN
+              key: latest
+        - name: BREVO_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: BREVO_API_KEY
+              key: latest
+        - name: BREVO_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: BREVO_FROM_EMAIL
+              key: latest
+        - name: BREVO_FROM_NAME
+          valueFrom:
+            secretKeyRef:
+              name: BREVO_FROM_NAME
+              key: latest
+        - name: RESEND_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: RESEND_API_KEY
+              key: latest
+        - name: EMAIL_FROM
+          valueFrom:
+            secretKeyRef:
+              name: EMAIL_FROM
+              key: latest
+        - name: ADMIN_SEED_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: ADMIN_SEED_EMAIL
+              key: latest
