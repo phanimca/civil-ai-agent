@@ -22,6 +22,8 @@ from ui.admin_dashboard import render_admin_dashboard
 
 
 class CivilAIStreamlitApp:
+    DEFAULT_LOGIN_EMAIL = "phani.dummy@hotmail.com"
+
     def __init__(
         self,
         settings: AppSettings,
@@ -111,7 +113,7 @@ class CivilAIStreamlitApp:
         st.session_state.setdefault("session_token", None)
         st.session_state.setdefault("show_auth_dialog", False)
         st.session_state.setdefault("auth_step", "email")
-        st.session_state.setdefault("pending_email", "")
+        st.session_state.setdefault("pending_email", CivilAIStreamlitApp.DEFAULT_LOGIN_EMAIL)
         st.session_state.setdefault("pending_code_expires_at", None)
         st.session_state.setdefault("next_code_request_at", None)
         st.session_state.setdefault("pending_code", "")
@@ -144,7 +146,7 @@ class CivilAIStreamlitApp:
         st.session_state["auth_flash_message"] = None
         st.session_state["auth_flash_target_step"] = None
         if not preserve_email:
-            st.session_state["pending_email"] = ""
+            st.session_state["pending_email"] = self.DEFAULT_LOGIN_EMAIL
 
     def _open_auth_dialog(self, step: str = "email") -> None:
         st.session_state["show_auth_dialog"] = True
@@ -593,7 +595,7 @@ class CivilAIStreamlitApp:
                 with st.form("send_otp_form"):
                     email = st.text_input(
                         "📧 Email Address",
-                        value=pending_email,
+                        value=pending_email or self.DEFAULT_LOGIN_EMAIL,
                         placeholder="Enter your email",
                         help="We will send a one-time password to this email.",
                     )
@@ -627,6 +629,8 @@ class CivilAIStreamlitApp:
                         "🔢 Enter OTP",
                         value=st.session_state.get("pending_code", ""),
                         placeholder="6-digit code",
+                        type="password",
+                        max_chars=6,
                     )
                     verify = st.form_submit_button("✅ Verify OTP", type="primary", width="stretch")
 
