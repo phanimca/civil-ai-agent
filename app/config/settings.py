@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from dotenv import load_dotenv
 
 
@@ -34,7 +35,14 @@ class AppSettings:
 
 
 def _secret_or_env(name: str, default: str = "") -> str:
-    return os.getenv(name) or st.secrets.get(name, default)
+    env_value = os.getenv(name)
+    if env_value:
+        return env_value
+
+    try:
+        return st.secrets.get(name, default)
+    except StreamlitSecretNotFoundError:
+        return default
 
 
 
