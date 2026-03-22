@@ -191,13 +191,11 @@ class CivilAIStreamlitApp:
             return
 
         st.markdown(
-            f"""
-            <div class=\"auth-success-card\">
-                <div class=\"auth-success-badge\">Verified</div>
-                <h3 class=\"auth-success-title\">{message}</h3>
-                <p class=\"auth-success-copy\">Preparing the next step for you.</p>
-            </div>
-            """,
+            '<div style="text-align:center;padding:30px;border-radius:20px;background:linear-gradient(135deg,#ecfeff,#ffffff);border:1px solid #bae6fd;">'
+            '<h2 style="color:#0284c7;">&#x2705; Verified Successfully</h2>'
+            f'<p style="color:#0f172a;font-weight:600;">{message}</p>'
+            '<p style="color:#475569;">Redirecting to next step...</p>'
+            '</div>',
             unsafe_allow_html=True,
         )
         time.sleep(0.9)
@@ -228,192 +226,43 @@ class CivilAIStreamlitApp:
         return {"email": 1, "otp": 2, "success": 2, "register": 3}.get(step, 1)
 
     def _render_auth_stepper(self, step: str) -> None:
-        current_step = self._auth_step_index(step)
-        labels = [
-            (1, "Email"),
-            (2, "OTP"),
-            (3, "Profile"),
-        ]
+        current = {"email": 1, "otp": 2, "success": 2, "register": 3}.get(step, 1)
 
-        steps_markup = []
-        for index, label in labels:
-            status_class = "auth-step"
-            if index < current_step:
-                status_class += " is-complete"
-            elif index == current_step:
-                status_class += " is-active"
-            steps_markup.append(
-                f'<div class="{status_class}"><div class="auth-step-index">{index}</div><div class="auth-step-label">{label}</div></div>'
-            )
+        steps = [("Email", 1), ("Verify OTP", 2), ("Profile", 3)]
 
-        st.markdown(
-            """
-            <style>
-                .auth-shell {
-                    border: 1px solid #dbe4f0;
-                    border-radius: 24px;
-                    padding: 20px 22px;
-                    background:
-                        radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 35%),
-                        linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-                    margin-bottom: 14px;
-                }
-                .auth-kicker {
-                    display: inline-block;
-                    padding: 6px 10px;
-                    border-radius: 999px;
-                    background: #e0f2fe;
-                    color: #075985;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.04em;
-                    text-transform: uppercase;
-                }
-                .auth-title {
-                    margin: 12px 0 6px 0;
-                    color: #0f172a;
-                    font-size: 28px;
-                    font-weight: 800;
-                    line-height: 1.1;
-                }
-                .auth-copy {
-                    margin: 0;
-                    color: #475569;
-                    font-size: 14px;
-                    line-height: 1.6;
-                }
-                .auth-steps {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 10px;
-                    margin: 16px 0 4px 0;
-                }
-                .auth-step {
-                    border: 1px solid #dbe4f0;
-                    border-radius: 18px;
-                    padding: 12px;
-                    background: #ffffff;
-                }
-                .auth-step.is-active {
-                    border-color: #0ea5e9;
-                    background: #f0f9ff;
-                    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.08);
-                }
-                .auth-step.is-complete {
-                    border-color: #86efac;
-                    background: #f0fdf4;
-                }
-                .auth-step-index {
-                    width: 30px;
-                    height: 30px;
-                    border-radius: 999px;
-                    display: grid;
-                    place-items: center;
-                    font-size: 13px;
-                    font-weight: 800;
-                    color: #0f172a;
-                    background: #e2e8f0;
-                    margin-bottom: 8px;
-                }
-                .auth-step.is-active .auth-step-index {
-                    background: #0ea5e9;
-                    color: #ffffff;
-                }
-                .auth-step.is-complete .auth-step-index {
-                    background: #16a34a;
-                    color: #ffffff;
-                }
-                .auth-step-label {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #0f172a;
-                }
-                .auth-side-note {
-                    padding: 12px 14px;
-                    border-radius: 16px;
-                    border: 1px solid #dbe4f0;
-                    background: #ffffff;
-                    color: #334155;
-                    font-size: 13px;
-                    line-height: 1.5;
-                    margin-bottom: 14px;
-                }
-                .auth-success-card {
-                    text-align: center;
-                    border: 1px solid #bfdbfe;
-                    border-radius: 22px;
-                    padding: 34px 20px;
-                    background:
-                        radial-gradient(circle at top center, rgba(14, 165, 233, 0.16), transparent 36%),
-                        linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
-                }
-                .auth-success-badge {
-                    display: inline-block;
-                    padding: 6px 12px;
-                    border-radius: 999px;
-                    background: #0ea5e9;
-                    color: #ffffff;
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 0.05em;
-                    text-transform: uppercase;
-                }
-                .auth-success-title {
-                    margin: 14px 0 8px 0;
-                    color: #0f172a;
-                    font-size: 28px;
-                    line-height: 1.15;
-                    font-weight: 800;
-                }
-                .auth-success-copy {
-                    margin: 0;
-                    color: #475569;
-                    font-size: 14px;
-                }
-                @media (max-width: 820px) {
-                    .auth-shell {
-                        padding: 16px;
-                        border-radius: 20px;
-                    }
-                    .auth-title {
-                        font-size: 22px;
-                    }
-                    .auth-steps {
-                        grid-template-columns: 1fr;
-                    }
-                    .auth-step {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
-                        padding: 10px 12px;
-                    }
-                    .auth-step-index {
-                        margin-bottom: 0;
-                        flex: 0 0 auto;
-                    }
-                    .auth-step-label {
-                        font-size: 14px;
-                    }
-                    .auth-side-note {
-                        font-size: 12px;
-                    }
-                    .auth-success-title {
-                        font-size: 22px;
-                    }
-                }
-            </style>
-            """,
-            unsafe_allow_html=True,
+        step_html = ""
+        for label, index in steps:
+            cls = "step done" if index < current else ("step active" if index == current else "step")
+            step_html += f'<div class="{cls}"><div class="circle">{index}</div><div class="label">{label}</div></div>'
+
+        # CSS — keep other auth component classes so _render_auth_note, success card, etc. still work
+        css = (
+            '<style>'
+            '.auth-container{border-radius:20px;padding:24px;background:rgba(255,255,255,0.75);backdrop-filter:blur(14px);border:1px solid #e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,0.08);margin-bottom:20px;}'
+            '.auth-title{font-size:26px;font-weight:800;margin-bottom:8px;}'
+            '.auth-sub{color:#64748b;font-size:14px;margin-bottom:18px;}'
+            '.steps{display:flex;justify-content:space-between;margin-top:10px;}'
+            '.step{text-align:center;flex:1;}'
+            '.circle{width:36px;height:36px;border-radius:50%;background:#e2e8f0;color:#0f172a;display:flex;align-items:center;justify-content:center;margin:auto;font-weight:700;transition:0.3s;}'
+            '.step.active .circle{background:#0ea5e9;color:white;transform:scale(1.1);}'
+            '.step.done .circle{background:#22c55e;color:white;}'
+            '.label{margin-top:6px;font-size:12px;color:#475569;font-weight:600;}'
+            '.auth-side-note{padding:12px 14px;border-radius:16px;border:1px solid #e2e8f0;background:#ffffff;color:#334155;font-size:13px;line-height:1.5;margin-bottom:14px;}'
+            '.auth-success-card{text-align:center;border:1px solid #bfdbfe;border-radius:22px;padding:34px 20px;background:linear-gradient(180deg,#f0f9ff 0%,#ffffff 100%);}'
+            '.auth-success-badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#0ea5e9;color:#ffffff;font-size:12px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;}'
+            '.auth-success-title{margin:14px 0 8px 0;color:#0f172a;font-size:28px;line-height:1.15;font-weight:800;}'
+            '.auth-success-copy{margin:0;color:#475569;font-size:14px;}'
+            '</style>'
         )
-        shell_html = (
-            '<div class="auth-shell">'
-            '<div class="auth-kicker">Secure Access</div>'
-            '<h2 class="auth-title">Verify your email to continue.</h2>'
-            '<p class="auth-copy">Use your email, verify the OTP, and complete your profile only if this is your first visit.</p>'
-            f'<div class="auth-steps">{"".join(steps_markup)}</div>'
-            '</div>'
+        html = (
+            css
+            + '<div class="auth-container">'
+            + '<div class="auth-title">&#x1F510; Secure Login</div>'
+            + '<div class="auth-sub">Fast OTP-based access for students &amp; engineers</div>'
+            + f'<div class="steps">{step_html}</div>'
+            + '</div>'
         )
-        st.markdown(shell_html, unsafe_allow_html=True)
+        st.markdown(html, unsafe_allow_html=True)
 
     @staticmethod
     def _render_auth_note(message: str) -> None:
@@ -602,6 +451,15 @@ class CivilAIStreamlitApp:
                 self._reset_auth_flow()
                 st.rerun()
 
+            st.markdown(
+                '<style>'
+                '.auth-card{padding:20px;border-radius:18px;background:linear-gradient(135deg,#f0f9ff,#ffffff);border:1px solid #e2e8f0;margin-bottom:16px;}'
+                '.auth-highlight{font-size:14px;color:#0369a1;font-weight:600;}'
+                '</style>'
+                '<div class="auth-card"><div class="auth-highlight">&#x1F680; AI-powered civil inspection demo</div></div>',
+                unsafe_allow_html=True,
+            )
+
             step = st.session_state.get("auth_step", "email")
             pending_email = st.session_state.get("pending_email", "")
             self._render_auth_stepper(step)
@@ -621,13 +479,13 @@ class CivilAIStreamlitApp:
 
                 with st.form("send_otp_form"):
                     email = st.text_input(
-                        "Email Address",
+                        "📧 Email Address",
                         value=pending_email,
-                        placeholder="name@example.com",
+                        placeholder="Enter your email",
                         help="We will send a one-time password to this email.",
                     )
                     send_otp = st.form_submit_button(
-                        "Send OTP",
+                        "🚀 Send OTP",
                         type="primary",
                         width="stretch",
                         disabled=cooldown_left > 0,
@@ -653,11 +511,11 @@ class CivilAIStreamlitApp:
                 with st.form("verify_otp_form"):
                     st.text_input("Email", value=pending_email, disabled=True)
                     code = st.text_input(
-                        "Enter OTP",
+                        "🔢 Enter OTP",
                         value=st.session_state.get("pending_code", ""),
                         placeholder="6-digit code",
                     )
-                    verify = st.form_submit_button("Verify OTP", type="primary", width="stretch")
+                    verify = st.form_submit_button("✅ Verify OTP", type="primary", width="stretch")
 
                 action_col1, action_col2 = st.columns(2)
                 if action_col1.button("Change Email", width="stretch"):
