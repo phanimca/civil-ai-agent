@@ -41,40 +41,40 @@ class CivilAIStreamlitApp:
             return
 
         carousel_key = "demo_carousel_index"
-        current_index = int(st.session_state.get(carousel_key, 0))
         total = len(slides)
-        if current_index < 0 or current_index >= total:
-            current_index = 0
-            st.session_state[carousel_key] = 0
+        interval_seconds = float(st.session_state.get("demo_carousel_interval_seconds", 3.0))
 
-        title, file_path = slides[current_index]
+        @st.fragment(run_every=timedelta(seconds=interval_seconds))
+        def _carousel_fragment() -> None:
+            current_index = int(st.session_state.get(carousel_key, 0))
+            if current_index < 0 or current_index >= total:
+                current_index = 0
+                st.session_state[carousel_key] = 0
 
-        # Render a shorter, wider visual by center-cropping to a panoramic ratio.
-        frame = Image.open(file_path).convert("RGB")
-        width, height = frame.size
-        target_ratio = 2.35
-        current_ratio = width / max(1, height)
-        if current_ratio < target_ratio:
-            crop_h = int(width / target_ratio)
-            top = max(0, (height - crop_h) // 2)
-            frame = frame.crop((0, top, width, top + crop_h))
-        else:
-            crop_w = int(height * target_ratio)
-            left = max(0, (width - crop_w) // 2)
-            frame = frame.crop((left, 0, left + crop_w, height))
+            title, file_path = slides[current_index]
 
-        st.image(frame, width="stretch")
-        st.markdown(f"**{title}**")
-        st.caption(f"Sample inspection scene: {title}.")
+            # Render a shorter, wider visual by center-cropping to a panoramic ratio.
+            frame = Image.open(file_path).convert("RGB")
+            width, height = frame.size
+            target_ratio = 2.35
+            current_ratio = width / max(1, height)
+            if current_ratio < target_ratio:
+                crop_h = int(width / target_ratio)
+                top = max(0, (height - crop_h) // 2)
+                frame = frame.crop((0, top, width, top + crop_h))
+            else:
+                crop_w = int(height * target_ratio)
+                left = max(0, (width - crop_w) // 2)
+                frame = frame.crop((left, 0, left + crop_w, height))
 
-        if total > 1 and not st.session_state.get("show_auth_dialog", False):
-            now = time.time()
-            last_advance_at = float(st.session_state.get("demo_carousel_last_advance_at", now))
-            interval_seconds = float(st.session_state.get("demo_carousel_interval_seconds", 3.0))
-            if now - last_advance_at >= interval_seconds:
+            st.image(frame, width="stretch")
+            st.markdown(f"**{title}**")
+            st.caption(f"Sample inspection scene: {title}.")
+
+            if total > 1 and not st.session_state.get("show_auth_dialog", False):
                 st.session_state[carousel_key] = (current_index + 1) % total
-                st.session_state["demo_carousel_last_advance_at"] = now
-                st.rerun()
+
+        _carousel_fragment()
 
     @st.cache_resource
     def _get_model(_self, hf_token: str):
@@ -191,10 +191,10 @@ class CivilAIStreamlitApp:
             return
 
         st.markdown(
-            '<div style="text-align:center;padding:30px;border-radius:20px;background:linear-gradient(135deg,#ecfeff,#ffffff);border:1px solid #bae6fd;">'
-            '<h2 style="color:#0284c7;">&#x2705; Verified Successfully</h2>'
-            f'<p style="color:#0f172a;font-weight:600;">{message}</p>'
-            '<p style="color:#475569;">Redirecting to next step...</p>'
+            '<div style="text-align:center;padding:18px;border-radius:14px;background:linear-gradient(135deg,#ecfeff,#ffffff);border:1px solid #bae6fd;">'
+            '<h3 style="color:#0284c7;margin:0 0 6px 0;font-size:20px;">&#x2705; Verified Successfully</h3>'
+            f'<p style="color:#0f172a;font-weight:600;margin:0 0 4px 0;font-size:13px;">{message}</p>'
+            '<p style="color:#475569;margin:0;font-size:12px;">Redirecting to next step...</p>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -238,16 +238,16 @@ class CivilAIStreamlitApp:
         # CSS — keep other auth component classes so _render_auth_note, success card, etc. still work
         css = (
             '<style>'
-            '.auth-container{border-radius:20px;padding:24px;background:rgba(255,255,255,0.75);backdrop-filter:blur(14px);border:1px solid #e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,0.08);margin-bottom:20px;}'
-            '.auth-title{font-size:26px;font-weight:800;margin-bottom:8px;}'
-            '.auth-sub{color:#64748b;font-size:14px;margin-bottom:18px;}'
-            '.steps{display:flex;justify-content:space-between;margin-top:10px;}'
+            '.auth-container{border-radius:14px;padding:12px;background:rgba(255,255,255,0.78);backdrop-filter:blur(10px);border:1px solid #e2e8f0;box-shadow:0 8px 18px rgba(0,0,0,0.06);margin-bottom:8px;}'
+            '.auth-title{font-size:18px;font-weight:800;margin-bottom:4px;}'
+            '.auth-sub{color:#64748b;font-size:12px;margin-bottom:8px;}'
+            '.steps{display:flex;justify-content:space-between;margin-top:4px;gap:4px;}'
             '.step{text-align:center;flex:1;}'
-            '.circle{width:36px;height:36px;border-radius:50%;background:#e2e8f0;color:#0f172a;display:flex;align-items:center;justify-content:center;margin:auto;font-weight:700;transition:0.3s;}'
-            '.step.active .circle{background:#0ea5e9;color:white;transform:scale(1.1);}'
+            '.circle{width:28px;height:28px;border-radius:50%;background:#e2e8f0;color:#0f172a;display:flex;align-items:center;justify-content:center;margin:auto;font-weight:700;font-size:12px;transition:0.25s;}'
+            '.step.active .circle{background:#0ea5e9;color:white;transform:scale(1.06);}'
             '.step.done .circle{background:#22c55e;color:white;}'
-            '.label{margin-top:6px;font-size:12px;color:#475569;font-weight:600;}'
-            '.auth-side-note{padding:12px 14px;border-radius:16px;border:1px solid #e2e8f0;background:#ffffff;color:#334155;font-size:13px;line-height:1.5;margin-bottom:14px;}'
+            '.label{margin-top:4px;font-size:10px;color:#475569;font-weight:600;line-height:1.2;}'
+            '.auth-side-note{padding:8px 10px;border-radius:10px;border:1px solid #e2e8f0;background:#ffffff;color:#334155;font-size:12px;line-height:1.35;margin-bottom:8px;}'
             '.auth-success-card{text-align:center;border:1px solid #bfdbfe;border-radius:22px;padding:34px 20px;background:linear-gradient(180deg,#f0f9ff 0%,#ffffff 100%);}'
             '.auth-success-badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#0ea5e9;color:#ffffff;font-size:12px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;}'
             '.auth-success-title{margin:14px 0 8px 0;color:#0f172a;font-size:28px;line-height:1.15;font-weight:800;}'
@@ -276,131 +276,170 @@ class CivilAIStreamlitApp:
         st.markdown(
             """
             <style>
+                .stApp .block-container {
+                    max-width: 1160px;
+                    padding-top: 0.2rem;
+                    padding-bottom: 0.3rem;
+                }
+                [data-testid="stVerticalBlock"] {
+                    gap: 0.34rem;
+                }
+                div[data-testid="stHorizontalBlock"] {
+                    gap: 0.55rem;
+                }
+                .stApp p {
+                    margin-bottom: 0.35rem;
+                }
                 .surface-hero {
                     border: 1px solid #dbe4f0;
-                    border-radius: 28px;
-                    padding: 30px 28px;
+                    border-radius: 16px;
+                    padding: 14px 14px;
                     background:
                         radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 34%),
                         radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.12), transparent 32%),
                         linear-gradient(165deg, #ffffff 0%, #f8fbff 56%, #f0fdf4 100%);
-                    box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
-                    margin-bottom: 18px;
+                    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+                    margin-bottom: 6px;
                 }
                 .surface-kicker {
                     display: inline-block;
-                    padding: 7px 12px;
+                    padding: 5px 10px;
                     border-radius: 999px;
                     background: #0f172a;
                     color: #f8fafc;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
                     letter-spacing: 0.05em;
                     text-transform: uppercase;
                 }
                 .surface-title {
-                    margin: 16px 0 8px 0;
+                    margin: 10px 0 8px 0;
                     color: #0f172a;
-                    font-size: 38px;
-                    line-height: 1.06;
+                    font-size: 26px;
+                    line-height: 1.2;
                     font-weight: 800;
                 }
                 .surface-copy {
-                    margin: 0 0 18px 0;
+                    margin: 0 0 10px 0;
                     color: #334155;
-                    font-size: 15px;
-                    line-height: 1.7;
+                    font-size: 13px;
+                    line-height: 1.55;
                 }
                 .surface-chip-grid {
                     display: grid;
                     grid-template-columns: repeat(2, minmax(0, 1fr));
-                    gap: 10px;
+                    gap: 6px;
                 }
                 .surface-chip {
-                    padding: 12px 14px;
-                    border-radius: 18px;
+                    padding: 6px 8px;
+                    border-radius: 10px;
                     border: 1px solid #dbe4f0;
                     background: rgba(255, 255, 255, 0.84);
                     color: #0f172a;
-                    font-size: 14px;
+                    font-size: 11px;
                     font-weight: 600;
                 }
                 .panel-title {
-                    margin: 0 0 12px 0;
+                    margin: 0 0 8px 0;
                     color: #0f172a;
-                    font-size: 24px;
+                    font-size: 18px;
                     font-weight: 800;
+                    line-height: 1.28;
                 }
                 .panel-note {
                     color: #64748b;
-                    font-size: 13px;
-                    margin-top: -6px;
-                    margin-bottom: 10px;
+                    font-size: 12px;
+                    margin-top: 0;
+                    margin-bottom: 6px;
+                    line-height: 1.35;
+                }
+                .snapshot-copy {
+                    margin: 0 0 8px 0;
+                    color: #334155;
+                    font-size: 12px;
+                    line-height: 1.45;
+                }
+                .snapshot-list {
+                    margin: 0;
+                    padding-left: 16px;
+                    color: #0f172a;
+                    font-size: 12px;
+                    line-height: 1.5;
+                }
+                .snapshot-list li {
+                    margin: 0 0 3px 0;
+                }
+                .snapshot-footnote {
+                    margin: 6px 0 0 0;
+                    color: #64748b;
+                    font-size: 11px;
+                    line-height: 1.35;
                 }
                 .result-row {
                     display: grid;
                     grid-template-columns: minmax(0, 2.2fr) repeat(3, minmax(0, 1fr));
-                    gap: 12px;
-                    padding: 14px 16px;
+                    gap: 6px;
+                    padding: 8px 10px;
                     border: 1px solid #dbe4f0;
-                    border-radius: 18px;
+                    border-radius: 12px;
                     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-                    margin-bottom: 12px;
+                    margin-bottom: 6px;
                     align-items: center;
                 }
                 .result-name {
                     color: #0f172a;
-                    font-size: 14px;
+                    font-size: 13px;
                     font-weight: 700;
-                    margin-bottom: 4px;
+                    margin-bottom: 2px;
                 }
                 .result-date {
                     color: #64748b;
-                    font-size: 12px;
+                    font-size: 11px;
                 }
                 .result-label {
                     color: #64748b;
-                    font-size: 11px;
+                    font-size: 10px;
                     text-transform: uppercase;
                     letter-spacing: 0.04em;
-                    margin-bottom: 4px;
+                    margin-bottom: 2px;
                 }
                 .result-metric {
                     color: #0f172a;
-                    font-size: 13px;
+                    font-size: 12px;
                     font-weight: 700;
                 }
                 .detection-grid {
                     display: grid;
                     grid-template-columns: repeat(2, minmax(0, 1fr));
-                    gap: 10px;
-                    margin-bottom: 14px;
+                    gap: 6px;
+                    margin-bottom: 6px;
                 }
                 .detection-card {
-                    padding: 12px 14px;
-                    border-radius: 18px;
+                    padding: 7px 8px;
+                    border-radius: 10px;
                     border: 1px solid #dbe4f0;
                     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
                     color: #0f172a;
-                    font-size: 13px;
-                    line-height: 1.55;
+                    font-size: 11px;
+                    line-height: 1.35;
                 }
                 .nav-title {
                     color: #0f172a;
-                    font-size: 13px;
+                    font-size: 11px;
                     font-weight: 800;
                     letter-spacing: 0.05em;
                     text-transform: uppercase;
-                    margin-bottom: 10px;
+                    margin-bottom: 4px;
                 }
                 .nav-user {
                     color: #475569;
-                    font-size: 13px;
-                    margin-top: 10px;
+                    font-size: 11px;
+                    margin-top: 4px;
+                    line-height: 1.35;
                 }
                 @media (max-width: 900px) {
                     .surface-title {
-                        font-size: 32px;
+                        font-size: 22px;
                     }
                     .surface-chip-grid,
                     .detection-grid {
@@ -422,10 +461,10 @@ class CivilAIStreamlitApp:
             css_styles="""
             {
                 border: 1px solid #dbe4f0;
-                border-radius: 22px;
-                padding: calc(1rem - 1px);
+                border-radius: 14px;
+                padding: calc(0.52rem - 1px);
                 background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-                box-shadow: 0 14px 36px rgba(15, 23, 42, 0.05);
+                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
             }
             """,
         )
@@ -445,7 +484,7 @@ class CivilAIStreamlitApp:
 
         @st.dialog("Try Civil AI for Free", width="large", dismissible=False, on_dismiss="ignore")
         def auth_dialog() -> None:
-            close_col, _ = st.columns([1, 5])
+            close_col, _ = st.columns([0.8, 5.2])
             if close_col.button("Close", key="auth_dialog_close", width="stretch"):
                 self._dismiss_auth_dialog()
                 self._reset_auth_flow()
@@ -453,8 +492,14 @@ class CivilAIStreamlitApp:
 
             st.markdown(
                 '<style>'
-                '.auth-card{padding:20px;border-radius:18px;background:linear-gradient(135deg,#f0f9ff,#ffffff);border:1px solid #e2e8f0;margin-bottom:16px;}'
-                '.auth-highlight{font-size:14px;color:#0369a1;font-weight:600;}'
+                '.auth-card{padding:10px 12px;border-radius:12px;background:linear-gradient(135deg,#f0f9ff,#ffffff);border:1px solid #e2e8f0;margin-bottom:8px;}'
+                '.auth-highlight{font-size:12px;color:#0369a1;font-weight:600;line-height:1.3;}'
+                'div[data-testid="stForm"]{padding:0.35rem 0 0 0;}'
+                'div[data-testid="stTextInput"] label p,div[data-testid="stSelectbox"] label p,div[data-testid="stTextArea"] label p{font-size:12px !important;}'
+                'div[data-testid="stTextInput"] input,div[data-testid="stTextArea"] textarea{padding-top:0.32rem !important;padding-bottom:0.32rem !important;font-size:13px !important;}'
+                'div[data-testid="stSelectbox"] [data-baseweb="select"] > div{min-height:34px !important;font-size:13px !important;}'
+                'div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button{min-height:34px !important;}'
+                'div[data-testid="stButton"] button{min-height:32px !important;}'
                 '</style>'
                 '<div class="auth-card"><div class="auth-highlight">&#x1F680; AI-powered civil inspection demo</div></div>',
                 unsafe_allow_html=True,
@@ -472,7 +517,7 @@ class CivilAIStreamlitApp:
                 self._render_auth_note(
                     "We use OTP-based sign-in so you do not need to remember a password for the demo."
                 )
-                st.markdown("### Get your OTP")
+                st.markdown('<div class="panel-title">Get your OTP</div>', unsafe_allow_html=True)
                 st.caption("Enter your college or personal email address to continue.")
                 if cooldown_left > 0:
                     st.caption(f"You can request a new OTP in {cooldown_left}s.")
@@ -499,7 +544,7 @@ class CivilAIStreamlitApp:
                 self._render_auth_note(
                     "Check your inbox for the latest six-digit OTP. Use Send OTP Again if the previous code expired."
                 )
-                st.markdown("### Verify your email")
+                st.markdown('<div class="panel-title">Verify your email</div>', unsafe_allow_html=True)
                 st.caption(f"OTP sent to {pending_email}")
                 if expiry_left > 0:
                     mins = expiry_left // 60
@@ -564,7 +609,7 @@ class CivilAIStreamlitApp:
             self._render_auth_note(
                 "This short profile helps tailor the demo to civil engineering learners and faculty members."
             )
-            st.markdown("### Complete your profile")
+            st.markdown('<div class="panel-title">Complete your profile</div>', unsafe_allow_html=True)
             st.caption("First-time users only. After this step, you will land on the dashboard.")
             st.caption(f"Verified email: {pending_email}")
 
@@ -590,7 +635,7 @@ class CivilAIStreamlitApp:
                     "What do you know about AI",
                     value=user["ai_awareness"] or "",
                     placeholder="Share what you know, use, or want to learn about AI in civil engineering.",
-                    height=120,
+                    height=84,
                 )
                 register = st.form_submit_button("Finish Setup and Open Dashboard", type="primary", width="stretch")
 
@@ -631,14 +676,19 @@ class CivilAIStreamlitApp:
         auth_dialog()
 
     def _render_header(self) -> None:
-        title_col, right_col = st.columns([1.55, 1.0], vertical_alignment="center")
+        title_col, right_col = st.columns([1.55, 0.55], vertical_alignment="center")
 
         with title_col:
             if os.path.exists(self.settings.header_logo_path):
-                st.image(self.settings.header_logo_path, width=190)
-            st.title("Phani's Civil Inspection AI Agent")
+                st.image(self.settings.header_logo_path, width=95)
             st.markdown(
-                '<p style="font-size:12px;color:#64748b;margin-top:-6px;margin-bottom:8px;">'
+                '<h2 style="margin:0 0 4px 0;color:#0f172a;font-size:22px;line-height:1.18;font-weight:800;">'
+                "Phani's Civil Inspection AI Agent"
+                "</h2>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<p style="font-size:10px;line-height:1.35;color:#64748b;margin-top:0;margin-bottom:4px;">'
                 "Demo for B.Tech Civil students | Designed by Phani"
                 "</p>",
                 unsafe_allow_html=True,
@@ -647,9 +697,7 @@ class CivilAIStreamlitApp:
         with right_col:
             ai_img_path = os.path.join(self.settings.project_root, "images", "AI_in_Civil_Engineering.png")
             if os.path.exists(ai_img_path):
-                st.image(ai_img_path, width="stretch")
-
-        st.divider()
+                st.image(ai_img_path, width=180)
 
     @staticmethod
     def _render_footer() -> None:
@@ -657,7 +705,7 @@ class CivilAIStreamlitApp:
         st.caption("Civil-AI-Agent Demo | Built with GenAI")
 
     def _render_home(self) -> None:
-        left_col, right_col = st.columns([1.05, 1.35], vertical_alignment="center")
+        left_col, right_col = st.columns([1.1, 1.25], vertical_alignment="center")
 
         with left_col:
             self._render_page_intro(
@@ -671,8 +719,7 @@ class CivilAIStreamlitApp:
                     "Export-ready documentation",
                 ],
             )
-            st.markdown("### Start the demo")
-            st.caption("Use the free trial flow to access the dashboard, inspect images, and download reports.")
+            st.caption("Use Try for Free to access dashboard, inspections, and reports.")
 
         with right_col:
             if st.button("Try for Free", type="primary", width="stretch"):
@@ -683,7 +730,12 @@ class CivilAIStreamlitApp:
                 self._render_demo_carousel(self.settings.demo_carousel_images)
 
     def _render_auth(self) -> None:
-        st.info("Use the Try for Free button on the home page to sign in.")
+        with self._surface_container("auth_hint_panel"):
+            st.markdown('<div class="panel-title">Sign in Required</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="panel-note">Use the Try for Free button on the home page to start OTP verification.</div>',
+                unsafe_allow_html=True,
+            )
         self._reset_auth_flow()
         self._open_auth_dialog("email")
 
@@ -718,46 +770,52 @@ class CivilAIStreamlitApp:
         with insight_col:
             with self._surface_container("dashboard_snapshot"):
                 st.markdown('<div class="panel-title">Workspace Snapshot</div>', unsafe_allow_html=True)
-                st.write("Use the navigation tabs to inspect new images, review report history, and download PDFs.")
-                st.markdown(
-                    f"- Recent crack detections analysed: {total_recent_cracks}\n"
-                    f"- High severity detections in recent reports: {total_recent_high}\n"
-                    f"- Account email: {user['email']}"
+                snapshot_note = (
+                    "Admin mode is available from the Admin tab."
+                    if user["role"] == "admin"
+                    else "Open Inspect to upload new infrastructure images."
                 )
-                if user["role"] == "admin":
-                    st.info("Admin mode is available from the Admin tab.")
-                else:
-                    st.caption("Open Inspect to upload new infrastructure images.")
+                st.markdown(
+                    '<p class="snapshot-copy">Use the navigation tabs to inspect new images, review report history, and download PDFs.</p>'
+                    '<ul class="snapshot-list">'
+                    f'<li>Recent crack detections analysed: {total_recent_cracks}</li>'
+                    f'<li>High severity detections in recent reports: {total_recent_high}</li>'
+                    f'<li>Account email: {user["email"]}</li>'
+                    '</ul>'
+                    f'<p class="snapshot-footnote">{snapshot_note}</p>',
+                    unsafe_allow_html=True,
+                )
 
         with activity_col:
-            st.markdown('<div class="panel-title">Recent Inspections</div>', unsafe_allow_html=True)
-            if not rows:
-                st.info("No inspections yet. Open the Inspect page from the tabs above.")
-            else:
-                for row in rows:
-                    st.markdown(
-                        f"""
-                        <div class="result-row">
-                            <div>
-                                <div class="result-name">{row['image_name']}</div>
-                                <div class="result-date">{row['created_at']}</div>
+            with self._surface_container("dashboard_recent_inspections"):
+                st.markdown('<div class="panel-title">Recent Inspections</div>', unsafe_allow_html=True)
+                if not rows:
+                    st.info("No inspections yet. Open the Inspect page from the tabs above.")
+                else:
+                    for row in rows:
+                        st.markdown(
+                            f"""
+                            <div class="result-row">
+                                <div>
+                                    <div class="result-name">{row['image_name']}</div>
+                                    <div class="result-date">{row['created_at']}</div>
+                                </div>
+                                <div>
+                                    <div class="result-label">Total Cracks</div>
+                                    <div class="result-metric">{row['total_cracks']}</div>
+                                </div>
+                                <div>
+                                    <div class="result-label">High Severity</div>
+                                    <div class="result-metric">{row['high_severity']}</div>
+                                </div>
+                                <div>
+                                    <div class="result-label">Status</div>
+                                    <div class="result-metric">{"Attention Needed" if row['high_severity'] else "Stable"}</div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="result-label">Total Cracks</div>
-                                <div class="result-metric">{row['total_cracks']}</div>
-                            </div>
-                            <div>
-                                <div class="result-label">High Severity</div>
-                                <div class="result-metric">{row['high_severity']}</div>
-                            </div>
-                            <div>
-                                <div class="result-label">Status</div>
-                                <div class="result-metric">{"Attention Needed" if row['high_severity'] else "Stable"}</div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
     def _render_page_intro(self, kicker: str, title: str, copy: str, chips: list[str]) -> None:
         self._render_visual_system_styles()
@@ -875,7 +933,7 @@ class CivilAIStreamlitApp:
             ],
         )
 
-        with st.container(border=True):
+        with self._surface_container("history_filter_panel"):
             st.markdown('<div class="panel-title">Filter History</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="panel-note">Leave the date fields empty if you want to search across all available inspection records.</div>',
@@ -948,59 +1006,94 @@ class CivilAIStreamlitApp:
                 hide_index=True,
             )
 
-        st.markdown('<div class="panel-title">Inspection Cards</div>', unsafe_allow_html=True)
+        with self._surface_container("history_cards_panel"):
+            st.markdown('<div class="panel-title">Inspection Cards</div>', unsafe_allow_html=True)
 
-        for row in rows:
-            st.markdown(
-                f"""
-                <div class="result-row">
-                    <div>
-                        <div class="result-name">{row['image_name']}</div>
-                        <div class="result-date">{row['created_at']}</div>
+            for row in rows:
+                st.markdown(
+                    f"""
+                    <div class="result-row">
+                        <div>
+                            <div class="result-name">{row['image_name']}</div>
+                            <div class="result-date">{row['created_at']}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">Total Cracks</div>
+                            <div class="result-metric">{row['total_cracks']}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">High Severity</div>
+                            <div class="result-metric">{row['high_severity']}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">Status</div>
+                            <div class="result-metric">{"Attention Needed" if row['high_severity'] else "Stable"}</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="result-label">Total Cracks</div>
-                        <div class="result-metric">{row['total_cracks']}</div>
-                    </div>
-                    <div>
-                        <div class="result-label">High Severity</div>
-                        <div class="result-metric">{row['high_severity']}</div>
-                    </div>
-                    <div>
-                        <div class="result-label">Status</div>
-                        <div class="result-metric">{"Attention Needed" if row['high_severity'] else "Stable"}</div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-            if row["pdf_path"] and os.path.exists(row["pdf_path"]):
-                with open(row["pdf_path"], "rb") as pdf_f:
-                    st.download_button(
-                        "Download PDF",
-                        pdf_f,
-                        file_name=os.path.basename(row["pdf_path"]),
-                        key=f"download_history_{row['id']}",
-                    )
-            else:
-                st.caption("Report file not found on disk.")
+                if row["pdf_path"] and os.path.exists(row["pdf_path"]):
+                    with open(row["pdf_path"], "rb") as pdf_f:
+                        st.download_button(
+                            "Download PDF",
+                            pdf_f,
+                            file_name=os.path.basename(row["pdf_path"]),
+                            key=f"download_history_{row['id']}",
+                        )
+                else:
+                    st.caption("Report file not found on disk.")
 
     def _render_admin(self, user) -> None:
         if user["role"] != "admin":
             st.warning("Admin access required.")
             return
 
-        st.subheader("Admin Console")
+        self._render_page_intro(
+            kicker="Admin",
+            title="Manage users and access details.",
+            copy="Review registered accounts, verification state, and assigned roles from one compact admin console.",
+            chips=[
+                "Role visibility",
+                "Verification status",
+                "Account timeline",
+                "Quick user audit",
+            ],
+        )
+
         rows = self.repository.list_users_for_admin()
         if not rows:
             st.info("No users found.")
             return
 
-        for row in rows:
-            st.write(
-                f"#{row['id']} | {row['full_name']} | {row['email']} | role={row['role']} | verified={row['is_verified']} | {row['created_at']}"
-            )
+        with self._surface_container("admin_users_panel"):
+            st.markdown('<div class="panel-title">Admin Console</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-note">User registry with role and verification metadata.</div>', unsafe_allow_html=True)
+            for row in rows:
+                st.markdown(
+                    f"""
+                    <div class="result-row">
+                        <div>
+                            <div class="result-name">#{row['id']} - {row['full_name']}</div>
+                            <div class="result-date">{row['email']}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">Role</div>
+                            <div class="result-metric">{row['role']}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">Verified</div>
+                            <div class="result-metric">{"Yes" if row['is_verified'] else "No"}</div>
+                        </div>
+                        <div>
+                            <div class="result-label">Created</div>
+                            <div class="result-metric">{row['created_at']}</div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
     def _render_nav(self, user) -> None:
         options = ["home"]
@@ -1021,35 +1114,44 @@ class CivilAIStreamlitApp:
             st.session_state["page"] = options[0]
 
         self._render_visual_system_styles()
+        st.markdown(
+            '<style>'
+            '.st-key-top_navigation [data-testid="stSegmentedControl"] button{min-height:34px !important;}'
+            '.st-key-top_navigation [data-testid="stButton"] button{min-height:34px !important;}'
+            '</style>',
+            unsafe_allow_html=True,
+        )
 
-        with self._surface_container("top_navigation"):
-            left_col, right_col = st.columns([5, 1.2], vertical_alignment="center")
-            with left_col:
-                st.markdown('<div class="nav-title">Navigate</div>', unsafe_allow_html=True)
-                selected_page = st.segmented_control(
-                    "Navigation",
-                    options=options,
-                    default=st.session_state["page"],
-                    format_func=lambda option: labels[option],
-                    selection_mode="single",
-                    label_visibility="collapsed",
-                )
-                if selected_page and selected_page != st.session_state["page"]:
-                    st.session_state["page"] = selected_page
-                    st.rerun()
-
-                if user:
-                    st.markdown(f'<div class="nav-user">Logged in as: {user["email"]}</div>', unsafe_allow_html=True)
-
-            with right_col:
-                if user:
-                    st.markdown('<div class="nav-title">Session</div>', unsafe_allow_html=True)
-                    if st.button("Logout", key="nav_logout", width="stretch"):
-                        st.session_state["session_token"] = None
-                        st.session_state["page"] = "home"
+        _, nav_center, _ = st.columns([0.23, 1.54, 0.23], vertical_alignment="center")
+        with nav_center:
+            with self._surface_container("top_navigation"):
+                left_col, right_col = st.columns([4.7, 0.9], vertical_alignment="center")
+                with left_col:
+                    selected_page = st.segmented_control(
+                        "Navigation",
+                        options=options,
+                        default=st.session_state["page"],
+                        format_func=lambda option: labels[option],
+                        selection_mode="single",
+                        label_visibility="collapsed",
+                        width="content",
+                    )
+                    if selected_page and selected_page != st.session_state["page"]:
+                        st.session_state["page"] = selected_page
                         st.rerun()
 
-        st.divider()
+                    if user:
+                        st.markdown(f'<div class="nav-user">Logged in as: {user["email"]}</div>', unsafe_allow_html=True)
+
+                with right_col:
+                    if user:
+                        st.markdown('<div class="nav-title">Session</div>', unsafe_allow_html=True)
+                        if st.button("Logout", key="nav_logout", width="content"):
+                            st.session_state["session_token"] = None
+                            st.session_state["page"] = "home"
+                            st.rerun()
+
+        st.markdown('<div style="height:2px;"></div>', unsafe_allow_html=True)
 
     def run(self) -> None:
         st.set_page_config(page_title="Civil Inspection AI Demo", layout="wide")
