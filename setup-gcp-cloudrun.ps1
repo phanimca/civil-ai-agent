@@ -2,7 +2,8 @@ param(
     [string]$ProjectId = "civil-ai-agent",
     [string]$Region = "asia-south1",
     [string]$ServiceName = "civil-ai-agent",
-    [string]$Repository = "civil-ai-agent"
+    [string]$Repository = "civil-ai-agent",
+    [int]$MinInstances = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -128,6 +129,7 @@ $deployArgs = @(
     "--image=$image",
     "--region=$Region",
     "--platform=managed",
+    "--min-instances=$MinInstances",
     "--allow-unauthenticated",
     "--port=8080",
     "--set-env-vars=STREAMLIT_SERVER_HEADLESS=true"

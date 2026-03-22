@@ -26,19 +26,7 @@ steps:
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
     waitFor: ["build-image"]
 
-  # Step 3: Scan image for vulnerabilities (optional, requires Artifact Analysis)
-  - name: gcr.io/cloud-builders/gke-deploy
-    id: scan-image
-    args:
-      - run
-      - --filename=.
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
-      - --location=us
-      - --cluster=
-    waitFor: ["push-image"]
-    onFailure: ["CONTINUE"]  # Don't block deployment on scan failure
-
-  # Step 4: Deploy to Cloud Run
+  # Step 3: Deploy to Cloud Run
   - name: gcr.io/cloud-builders/run
     id: deploy-cloud-run
     args:
@@ -49,6 +37,7 @@ steps:
       - --platform=managed
       - --memory=${_MEMORY}
       - --cpu=${_CPU}
+      - --min-instances=${_MIN_INSTANCES}
       - --timeout=3600
       - --max-instances=10
       - --allow-unauthenticated
@@ -66,7 +55,7 @@ steps:
       - CLOUDSDK_COMPUTE_REGION=${_REGION}
     waitFor: ["push-image"]
 
-  # Step 5: Log deployment info
+  # Step 4: Log deployment info
   - name: gcr.io/cloud-builders/gcloud
     id: deployment-info
     args:
@@ -97,6 +86,7 @@ substitutions:
   _SERVICE: civil-ai-agent                # Cloud Run service name
   _MEMORY: 1Gi                            # Cloud Run memory
   _CPU: "0.5"                             # Cloud Run vCPU
+  _MIN_INSTANCES: "0"                    # Lowest cost: no always-on warm instances
   _ARTIFACT_BUCKET: ${PROJECT_ID}-builds  # GCS bucket for build artifacts
 
 # Build configuration
