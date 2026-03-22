@@ -54,21 +54,8 @@ class CivilAIStreamlitApp:
 
             title, file_path = slides[current_index]
 
-            # Render a shorter, wider visual by center-cropping to a panoramic ratio.
-            frame = Image.open(file_path).convert("RGB")
-            width, height = frame.size
-            target_ratio = 2.35
-            current_ratio = width / max(1, height)
-            if current_ratio < target_ratio:
-                crop_h = int(width / target_ratio)
-                top = max(0, (height - crop_h) // 2)
-                frame = frame.crop((0, top, width, top + crop_h))
-            else:
-                crop_w = int(height * target_ratio)
-                left = max(0, (width - crop_w) // 2)
-                frame = frame.crop((left, 0, left + crop_w, height))
-
-            st.image(frame, width="stretch")
+            frame_bytes = self._get_carousel_frame_bytes(file_path)
+            st.image(frame_bytes, width="stretch")
             st.markdown(f"**{title}**")
             st.caption(f"Sample inspection scene: {title}.")
 
@@ -76,6 +63,33 @@ class CivilAIStreamlitApp:
                 st.session_state[carousel_key] = (current_index + 1) % total
 
         _carousel_fragment()
+
+    @staticmethod
+    def _get_carousel_frame_bytes(file_path: str) -> bytes:
+        cache: dict[str, bytes] = st.session_state.setdefault("demo_carousel_frame_cache", {})
+        cached = cache.get(file_path)
+        if cached is not None:
+            return cached
+
+        # Keep a stable encoded frame for each slide to avoid media-id churn across reruns.
+        frame = Image.open(file_path).convert("RGB")
+        width, height = frame.size
+        target_ratio = 2.35
+        current_ratio = width / max(1, height)
+        if current_ratio < target_ratio:
+            crop_h = int(width / target_ratio)
+            top = max(0, (height - crop_h) // 2)
+            frame = frame.crop((0, top, width, top + crop_h))
+        else:
+            crop_w = int(height * target_ratio)
+            left = max(0, (width - crop_w) // 2)
+            frame = frame.crop((left, 0, left + crop_w, height))
+
+        buffer = io.BytesIO()
+        frame.save(buffer, format="JPEG", quality=92, optimize=True)
+        encoded = buffer.getvalue()
+        cache[file_path] = encoded
+        return encoded
 
     @st.cache_resource
     def _get_model(_self, hf_token: str):
@@ -106,6 +120,7 @@ class CivilAIStreamlitApp:
         st.session_state.setdefault("demo_carousel_index", 0)
         st.session_state.setdefault("demo_carousel_last_advance_at", time.time())
         st.session_state.setdefault("demo_carousel_interval_seconds", 3.0)
+        st.session_state.setdefault("demo_carousel_frame_cache", {})
 
     @staticmethod
     def _split_name(full_name: str) -> tuple[str, str]:
