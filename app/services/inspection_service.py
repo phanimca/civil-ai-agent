@@ -9,7 +9,7 @@ import numpy as np
 from openai import OpenAI
 from PIL import Image
 
-from ai_report import generate_report
+from ai_report import generate_report_with_usage
 from data.repository import SQLiteRepository
 from pdf import create_pdf
 from severity import calculate_severity
@@ -22,6 +22,10 @@ class InspectionRunResult:
     total_cracks: int
     high_severity: int
     report: str
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    approx_cost_inr: float
     final_pdf_path: str
 
 
@@ -41,6 +45,15 @@ class InspectionService:
         self.openai_token = openai_token
         self.model_name = model_name
         self.hf_token = hf_token
+        self.usd_to_inr = float(os.getenv("USD_TO_INR_RATE", "83"))
+        # Default rates align with GPT-4o-mini style pricing; override via env if needed.
+        self.input_cost_per_1k_usd = float(os.getenv("LLM_INPUT_COST_PER_1K_USD", "0.00015"))
+        self.output_cost_per_1k_usd = float(os.getenv("LLM_OUTPUT_COST_PER_1K_USD", "0.00060"))
+
+    def estimate_cost_inr(self, prompt_tokens: int, completion_tokens: int) -> float:
+        input_usd = (max(prompt_tokens, 0) / 1000.0) * self.input_cost_per_1k_usd
+        output_usd = (max(completion_tokens, 0) / 1000.0) * self.output_cost_per_1k_usd
+        return round((input_usd + output_usd) * self.usd_to_inr, 6)
 
     def load_detection_model(self):
         try:
@@ -78,15 +91,19 @@ class InspectionService:
         )
         return total, high
 
-    def generate_ai_report(self, detections: list[str]) -> str:
+    def generate_ai_report(self, detections: list[str]) -> tuple[str, int, int, int, float]:
         if not detections:
             detections = ["Minor surface anomaly detected"]
 
         try:
             client = OpenAI(api_key=self.openai_token, base_url="https://models.github.ai/inference")
-            return generate_report(client, self.model_name, detections)
+            report, prompt_tokens, completion_tokens, total_tokens = generate_report_with_usage(
+                client, self.model_name, detections
+            )
+            approx_cost_inr = self.estimate_cost_inr(prompt_tokens, completion_tokens)
+            return report, prompt_tokens, completion_tokens, total_tokens, approx_cost_inr
         except Exception as exc:
-            return f"AI report generation failed: {exc}"
+            return f"AI report generation failed: {exc}", 0, 0, 0, 0.0
 
     def save_user_files(self, user_id: int, uploaded_file_name: str, image: Image.Image, temp_pdf_path: str) -> tuple[str, str]:
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -112,6 +129,10 @@ class InspectionService:
         total_cracks: int,
         high_severity: int,
         report: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        total_tokens: int,
+        approx_cost_inr: float,
     ) -> tuple[str, str]:
         pdf_file = create_pdf(
             report,
@@ -124,5 +145,18 @@ class InspectionService:
             },
         )
         image_path, final_pdf = self.save_user_files(user_id, uploaded_file_name, image, pdf_file)
-        self.repository.log_inspection(user_id, uploaded_file_name, image_path, final_pdf, total_cracks, high_severity, report)
+        self.repository.log_inspection(
+            user_id,
+            uploaded_file_name,
+            image_path,
+            final_pdf,
+            total_cracks,
+            high_severity,
+            report,
+            llm_prompt_tokens=prompt_tokens,
+            llm_completion_tokens=completion_tokens,
+            llm_total_tokens=total_tokens,
+            llm_cost_inr=approx_cost_inr,
+        )
+        self.repository.log_llm_usage(user_id=user_id, llm_name=self.model_name, tokens_used=total_tokens)
         return image_path, final_pdf

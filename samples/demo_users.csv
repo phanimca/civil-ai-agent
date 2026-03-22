@@ -1,0 +1,13 @@
+first_name,last_name,full_name,email,mobile,college,profession,python_knowledge,ai_tool_usage,ai_awareness,created_days_ago
+Aarav,Reddy,Aarav Reddy,aarav.reddy@demo.civilai.local,9000000001,RV College of Engineering Bengaluru,CIVIL ENGINEERING,BEGINNER,"CHATGPT, GEMINI",INTERMEDIATE,18
+Vihaan,Sharma,Vihaan Sharma,vihaan.sharma@demo.civilai.local,9000000002,BMS College of Engineering Bengaluru,MECHANICAL ENGINEERING,INTERMEDIATE,CHATGPT,BEGINNER,27
+Aditya,Kumar,Aditya Kumar,aditya.kumar@demo.civilai.local,9000000003,MS Ramaiah Institute of Technology Bengaluru,COMPUTER SCIENCE,ADVANCED,"CHATGPT, CLAUDE",ADVANCED,36
+Arjun,Patel,Arjun Patel,arjun.patel@demo.civilai.local,9000000004,Siddaganga Institute of Technology Tumkur,CIVIL ENGINEERING,BEGINNER,GEMINI,BEGINNER,45
+Sai,Teja,Sai Teja,sai.teja@demo.civilai.local,9000000005,Sri Siddhartha Institute of Technology Tumkur,ELECTRICAL ENGINEERING,INTERMEDIATE,"CHATGPT, CLAUDE",INTERMEDIATE,54
+Nikhil,Gowda,Nikhil Gowda,nikhil.gowda@demo.civilai.local,9000000006,RV College of Engineering Bengaluru,CIVIL ENGINEERING,INTERMEDIATE,CHATGPT,INTERMEDIATE,63
+Rahul,Joshi,Rahul Joshi,rahul.joshi@demo.civilai.local,9000000007,BMS College of Engineering Bengaluru,INFORMATION SCIENCE,ADVANCED,"CHATGPT, CLAUDE, GEMINI",ADVANCED,72
+Karthik,Iyer,Karthik Iyer,karthik.iyer@demo.civilai.local,9000000008,MS Ramaiah Institute of Technology Bengaluru,CIVIL ENGINEERING,BEGINNER,CHATGPT,BEGINNER,81
+Pranav,Shetty,Pranav Shetty,pranav.shetty@demo.civilai.local,9000000009,Siddaganga Institute of Technology Tumkur,ELECTRONICS ENGINEERING,INTERMEDIATE,"GEMINI, CHATGPT",INTERMEDIATE,90
+Harsha,Kulkarni,Harsha Kulkarni,harsha.kulkarni@demo.civilai.local,9000000010,Sri Siddhartha Institute of Technology Tumkur,CIVIL ENGINEERING,BEGINNER,GEMINI,BEGINNER,99
+Rohit,Naik,Rohit Naik,rohit.naik@demo.civilai.local,9000000011,RV College of Engineering Bengaluru,CIVIL ENGINEERING,ADVANCED,"CHATGPT, CLAUDE",ADVANCED,108
+Manoj,Hegde,Manoj Hegde,manoj.hegde@demo.civilai.local,9000000012,BMS College of Engineering Bengaluru,ARCHITECTURE,INTERMEDIATE,CHATGPT,INTERMEDIATE,117

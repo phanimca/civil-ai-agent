@@ -16,16 +16,104 @@ def render_admin_dashboard(repo, user):
     st.title("📊 Admin Dashboard")
     st.subheader("User & LLM Usage Analytics")
     
-    tabs = st.tabs(["Users by College", "LLM Analytics", "Export Reports"])
+    tabs = st.tabs(["Dashboard", "Users by College", "LLM Analytics", "Export Reports"])
     
     with tabs[0]:
-        render_users_by_college(repo)
+        render_admin_visual_dashboard(repo)
     
     with tabs[1]:
-        render_llm_analytics(repo)
+        render_users_by_college(repo)
     
     with tabs[2]:
+        render_llm_analytics(repo)
+    
+    with tabs[3]:
         render_export_reports(repo)
+
+
+def render_admin_visual_dashboard(repo):
+    """Render a visual dashboard with key charts for admin."""
+    st.header("📈 Dashboard")
+
+    rows = repo.get_users_by_college_with_llm_stats(None)
+    if not rows:
+        st.info("No data available yet for dashboard charts.")
+        return
+
+    df = pd.DataFrame([dict(row) for row in rows])
+
+    df["college"] = df["college"].fillna("")
+    df["college"] = df["college"].replace("", "UNKNOWN")
+    df["total_llm_calls"] = pd.to_numeric(df["total_llm_calls"], errors="coerce").fillna(0)
+    df["total_tokens"] = pd.to_numeric(df["total_tokens"], errors="coerce").fillna(0)
+    df["inspection_total_cost_inr"] = pd.to_numeric(df["inspection_total_cost_inr"], errors="coerce").fillna(0.0)
+
+    total_users = len(df)
+    llm_active_users = int((df["total_llm_calls"] > 0).sum())
+    total_tokens = int(df["total_tokens"].sum())
+    total_cost_inr = float(df["inspection_total_cost_inr"].sum())
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total Users", total_users)
+    m2.metric("LLM Active Users", llm_active_users)
+    m3.metric("Total Tokens", total_tokens)
+    m4.metric("Estimated Cost (INR)", f"₹ {total_cost_inr:.2f}")
+
+    college_summary = (
+        df.groupby("college", as_index=False)
+        .agg(
+            users=("id", "count"),
+            llm_active_users=("total_llm_calls", lambda x: int((x > 0).sum())),
+            total_tokens=("total_tokens", "sum"),
+            total_cost_inr=("inspection_total_cost_inr", "sum"),
+        )
+    )
+    college_summary["adoption_pct"] = (
+        (college_summary["llm_active_users"] / college_summary["users"]).fillna(0) * 100
+    ).round(2)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("LLM Adoption by College (%)")
+        adoption_chart = college_summary[["college", "adoption_pct"]].set_index("college")
+        st.bar_chart(adoption_chart, use_container_width=True)
+
+    with c2:
+        st.subheader("Token Usage by College")
+        token_chart = college_summary[["college", "total_tokens"]].set_index("college")
+        st.bar_chart(token_chart, use_container_width=True)
+
+    c3, c4 = st.columns(2)
+    with c3:
+        st.subheader("Cost by College (INR)")
+        cost_chart = college_summary[["college", "total_cost_inr"]].set_index("college")
+        st.bar_chart(cost_chart, use_container_width=True)
+
+    with c4:
+        st.subheader("Registration Trend (Monthly)")
+        reg_df = df.copy()
+        reg_df["created_at"] = pd.to_datetime(reg_df["created_at"], errors="coerce")
+        reg_df = reg_df.dropna(subset=["created_at"])
+        if reg_df.empty:
+            st.info("No registration dates available.")
+        else:
+            reg_df["month"] = reg_df["created_at"].dt.to_period("M").astype(str)
+            monthly = reg_df.groupby("month", as_index=False).agg(users=("id", "count"))
+            st.line_chart(monthly.set_index("month"), use_container_width=True)
+
+    st.subheader("Top Colleges Snapshot")
+    st.dataframe(
+        college_summary.sort_values(["total_tokens", "users"], ascending=[False, False]),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "users": st.column_config.NumberColumn("Users", format="%d"),
+            "llm_active_users": st.column_config.NumberColumn("LLM Active Users", format="%d"),
+            "total_tokens": st.column_config.NumberColumn("Total Tokens", format="%d"),
+            "total_cost_inr": st.column_config.NumberColumn("Total Cost (INR)", format="%.2f"),
+            "adoption_pct": st.column_config.NumberColumn("Adoption %", format="%.2f"),
+        },
+    )
 
 
 def render_users_by_college(repo):
@@ -79,6 +167,10 @@ def render_users_by_college(repo):
         column_config={
             'Total LLM Calls': st.column_config.NumberColumn(format="%d"),
             'Total Tokens': st.column_config.NumberColumn(format="%d"),
+            'Inspection Prompt Tokens': st.column_config.NumberColumn(format="%d"),
+            'Inspection Completion Tokens': st.column_config.NumberColumn(format="%d"),
+            'Inspection Total Tokens': st.column_config.NumberColumn(format="%d"),
+            'Inspection Total Cost (INR)': st.column_config.NumberColumn(format="%.4f"),
         }
     )
     

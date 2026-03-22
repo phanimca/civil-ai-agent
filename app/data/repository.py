@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 class SQLiteRepository:
@@ -98,6 +99,10 @@ class SQLiteRepository:
                 pdf_path TEXT,
                 total_cracks INTEGER NOT NULL DEFAULT 0,
                 high_severity INTEGER NOT NULL DEFAULT 0,
+                llm_prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                llm_completion_tokens INTEGER NOT NULL DEFAULT 0,
+                llm_total_tokens INTEGER NOT NULL DEFAULT 0,
+                llm_cost_inr REAL NOT NULL DEFAULT 0,
                 report_text TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
@@ -147,6 +152,10 @@ class SQLiteRepository:
         self._ensure_column(cur, "users", "ai_tool_usage", "TEXT")
         self._ensure_column(cur, "users", "ai_awareness", "TEXT")
         self._ensure_column(cur, "users", "registration_completed", "INTEGER NOT NULL DEFAULT 0")
+        self._ensure_column(cur, "inspections", "llm_prompt_tokens", "INTEGER NOT NULL DEFAULT 0")
+        self._ensure_column(cur, "inspections", "llm_completion_tokens", "INTEGER NOT NULL DEFAULT 0")
+        self._ensure_column(cur, "inspections", "llm_total_tokens", "INTEGER NOT NULL DEFAULT 0")
+        self._ensure_column(cur, "inspections", "llm_cost_inr", "REAL NOT NULL DEFAULT 0")
 
         cur.execute(
             """
@@ -173,8 +182,175 @@ class SQLiteRepository:
                     (self.utc_now_str(), admin_row["id"]),
                 )
 
+        self._seed_demo_data(cur)
+
         conn.commit()
         conn.close()
+
+    def _seed_demo_data(self, cur: sqlite3.Cursor) -> None:
+        """Seed demo records for admin dashboard charts (idempotent)."""
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+        samples_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "samples"))
+        users_csv = os.path.join(samples_dir, "demo_users.csv")
+        llm_csv = os.path.join(samples_dir, "demo_llm_usage.csv")
+        inspections_csv = os.path.join(samples_dir, "demo_inspections.csv")
+
+        if not (os.path.exists(users_csv) and os.path.exists(llm_csv) and os.path.exists(inspections_csv)):
+            return
+
+        with open(users_csv, "r", encoding="utf-8", newline="") as f:
+            demo_users = [row for row in csv.DictReader(f) if (row.get("email") or "").strip()]
+
+        with open(llm_csv, "r", encoding="utf-8", newline="") as f:
+            llm_rows = [row for row in csv.DictReader(f) if (row.get("email") or "").strip()]
+
+        with open(inspections_csv, "r", encoding="utf-8", newline="") as f:
+            inspection_rows = [row for row in csv.DictReader(f) if (row.get("email") or "").strip()]
+
+        llm_by_email: dict[str, list[dict[str, str]]] = {}
+        for row in llm_rows:
+            email = self.normalize_email(row.get("email", ""))
+            llm_by_email.setdefault(email, []).append(row)
+
+        inspections_by_email: dict[str, list[dict[str, str]]] = {}
+        for row in inspection_rows:
+            email = self.normalize_email(row.get("email", ""))
+            inspections_by_email.setdefault(email, []).append(row)
+
+        for idx, row in enumerate(demo_users):
+            first_name = (row.get("first_name") or "").strip()
+            last_name = (row.get("last_name") or "").strip()
+            full_name = (row.get("full_name") or f"{first_name} {last_name}").strip()
+            email = self.normalize_email(row.get("email", ""))
+            if not email:
+                continue
+
+            mobile = (row.get("mobile") or f"90000{idx:05d}").strip()
+            college = self.normalize_college(row.get("college", ""))
+            profession = (row.get("profession") or "").strip()
+            python_knowledge = (row.get("python_knowledge") or "").strip()
+            ai_tool_usage = (row.get("ai_tool_usage") or "").strip()
+            ai_awareness = (row.get("ai_awareness") or "").strip()
+
+            created_days_ago_raw = (row.get("created_days_ago") or "").strip()
+            created_days_ago = int(created_days_ago_raw) if created_days_ago_raw.isdigit() else (idx * 9 + 10)
+            created_at = (now_dt - timedelta(days=created_days_ago)).strftime("%Y-%m-%d %H:%M:%S")
+
+            cur.execute(
+                """
+                INSERT INTO users (
+                    first_name, last_name, full_name, email, mobile, college,
+                    profession, python_knowledge, ai_tool_usage, ai_awareness,
+                    role, is_verified, registration_completed, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', 1, 1, ?, ?)
+                ON CONFLICT(email) DO UPDATE SET
+                    first_name=excluded.first_name,
+                    last_name=excluded.last_name,
+                    full_name=excluded.full_name,
+                    mobile=excluded.mobile,
+                    college=excluded.college,
+                    profession=excluded.profession,
+                    python_knowledge=excluded.python_knowledge,
+                    ai_tool_usage=excluded.ai_tool_usage,
+                    ai_awareness=excluded.ai_awareness,
+                    is_verified=1,
+                    registration_completed=1,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    first_name,
+                    last_name,
+                    full_name,
+                    email,
+                    mobile,
+                    college,
+                    profession,
+                    python_knowledge,
+                    ai_tool_usage,
+                    ai_awareness,
+                    created_at,
+                    now,
+                ),
+            )
+
+            cur.execute("SELECT id FROM users WHERE email = ?", (email,))
+            row = cur.fetchone()
+            if not row:
+                continue
+            user_id = int(row["id"])
+
+            cur.execute("DELETE FROM llm_usage WHERE user_id = ?", (user_id,))
+            for llm_row in llm_by_email.get(email, []):
+                llm_name = (llm_row.get("llm_name") or "").strip()
+                if not llm_name:
+                    continue
+                usage_count = int((llm_row.get("usage_count") or "0").strip() or "0")
+                tokens_used = int((llm_row.get("tokens_used") or "0").strip() or "0")
+                cur.execute(
+                    """
+                    INSERT INTO llm_usage (user_id, llm_name, usage_count, tokens_used, last_used, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        user_id,
+                        llm_name,
+                        int(usage_count),
+                        int(tokens_used),
+                        now,
+                        created_at,
+                        now,
+                    ),
+                )
+
+            cur.execute("DELETE FROM inspections WHERE user_id = ? AND image_name LIKE 'DEMO_%'", (user_id,))
+            for inspection_row in inspections_by_email.get(email, []):
+                image_name = (inspection_row.get("image_name") or "").strip()
+                if not image_name:
+                    continue
+
+                created_days_ago_raw = (inspection_row.get("created_days_ago") or "").strip()
+                created_days_ago = int(created_days_ago_raw) if created_days_ago_raw.isdigit() else (idx * 7 + 2)
+                created_at_insp = (now_dt - timedelta(days=created_days_ago)).strftime("%Y-%m-%d %H:%M:%S")
+
+                total_cracks = int((inspection_row.get("total_cracks") or "0").strip() or "0")
+                high_severity = int((inspection_row.get("high_severity") or "0").strip() or "0")
+                prompt_tokens = int((inspection_row.get("llm_prompt_tokens") or "0").strip() or "0")
+                completion_tokens = int((inspection_row.get("llm_completion_tokens") or "0").strip() or "0")
+                total_tokens_raw = (inspection_row.get("llm_total_tokens") or "").strip()
+                total_tokens = int(total_tokens_raw) if total_tokens_raw.isdigit() else prompt_tokens + completion_tokens
+
+                cost_inr_raw = (inspection_row.get("llm_cost_inr") or "").strip()
+                if cost_inr_raw:
+                    cost_inr = float(cost_inr_raw)
+                else:
+                    cost_inr = round((prompt_tokens / 1000 * 0.00015 + completion_tokens / 1000 * 0.00060) * 83, 6)
+
+                report_text = (inspection_row.get("report_text") or "Demo AI inspection report").strip()
+                cur.execute(
+                    """
+                    INSERT INTO inspections (
+                        user_id, image_name, image_path, pdf_path,
+                        total_cracks, high_severity,
+                        llm_prompt_tokens, llm_completion_tokens, llm_total_tokens, llm_cost_inr,
+                        report_text, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        user_id,
+                        image_name,
+                        f"app_data/uploads/{user_id}/{image_name}",
+                        f"app_data/reports/{user_id}/{os.path.splitext(image_name)[0]}.pdf",
+                        total_cracks,
+                        high_severity,
+                        prompt_tokens,
+                        completion_tokens,
+                        total_tokens,
+                        cost_inr,
+                        report_text,
+                        created_at_insp,
+                    ),
+                )
 
     @staticmethod
     def normalize_email(email: str) -> str:
@@ -411,15 +587,54 @@ class SQLiteRepository:
             return None
         return user
 
-    def log_inspection(self, user_id: int, image_name: str, image_path: str, pdf_path: str, total: int, high: int, report_text: str) -> None:
+    def log_inspection(
+        self,
+        user_id: int,
+        image_name: str,
+        image_path: str,
+        pdf_path: str,
+        total: int,
+        high: int,
+        report_text: str,
+        llm_prompt_tokens: int = 0,
+        llm_completion_tokens: int = 0,
+        llm_total_tokens: int = 0,
+        llm_cost_inr: float = 0.0,
+    ) -> None:
         conn = self.get_conn()
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO inspections (user_id, image_name, image_path, pdf_path, total_cracks, high_severity, report_text, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO inspections (
+                user_id,
+                image_name,
+                image_path,
+                pdf_path,
+                total_cracks,
+                high_severity,
+                llm_prompt_tokens,
+                llm_completion_tokens,
+                llm_total_tokens,
+                llm_cost_inr,
+                report_text,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, image_name, image_path, pdf_path, total, high, report_text, self.utc_now_str()),
+            (
+                user_id,
+                image_name,
+                image_path,
+                pdf_path,
+                total,
+                high,
+                int(llm_prompt_tokens),
+                int(llm_completion_tokens),
+                int(llm_total_tokens),
+                float(llm_cost_inr),
+                report_text,
+                self.utc_now_str(),
+            ),
         )
         conn.commit()
         conn.close()
@@ -428,7 +643,7 @@ class SQLiteRepository:
         conn = self.get_conn()
         cur = conn.cursor()
         cur.execute(
-            "SELECT image_name, total_cracks, high_severity, created_at FROM inspections WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            "SELECT image_name, total_cracks, high_severity, llm_total_tokens, llm_cost_inr, created_at FROM inspections WHERE user_id = ? ORDER BY id DESC LIMIT ?",
             (user_id, limit),
         )
         rows = cur.fetchall()
@@ -459,7 +674,7 @@ class SQLiteRepository:
         cur = conn.cursor()
         cur.execute(
             f"""
-            SELECT id, image_name, total_cracks, high_severity, created_at, pdf_path
+            SELECT id, image_name, total_cracks, high_severity, llm_total_tokens, llm_cost_inr, created_at, pdf_path
             FROM inspections
             WHERE {where_sql}
             ORDER BY id DESC
@@ -539,14 +754,36 @@ class SQLiteRepository:
                 """
                 SELECT 
                     u.*,
-                    COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
-                    COALESCE(SUM(l.tokens_used), 0) as total_tokens,
-                    COUNT(DISTINCT l.llm_name) as distinct_llms,
-                    GROUP_CONCAT(l.llm_name || ':' || l.usage_count, '; ') as llm_breakdown
+                    COALESCE(l.total_llm_calls, 0) as total_llm_calls,
+                    COALESCE(l.total_tokens, 0) as total_tokens,
+                    COALESCE(l.distinct_llms, 0) as distinct_llms,
+                    COALESCE(l.llm_breakdown, '') as llm_breakdown,
+                    COALESCE(i.total_prompt_tokens, 0) as total_prompt_tokens,
+                    COALESCE(i.total_completion_tokens, 0) as total_completion_tokens,
+                    COALESCE(i.inspection_total_tokens, 0) as inspection_total_tokens,
+                    COALESCE(i.inspection_total_cost_inr, 0) as inspection_total_cost_inr
                 FROM users u
-                LEFT JOIN llm_usage l ON u.id = l.user_id
+                LEFT JOIN (
+                    SELECT
+                        user_id,
+                        SUM(usage_count) as total_llm_calls,
+                        SUM(tokens_used) as total_tokens,
+                        COUNT(DISTINCT llm_name) as distinct_llms,
+                        GROUP_CONCAT(llm_name || ':' || usage_count, '; ') as llm_breakdown
+                    FROM llm_usage
+                    GROUP BY user_id
+                ) l ON u.id = l.user_id
+                LEFT JOIN (
+                    SELECT
+                        user_id,
+                        SUM(llm_prompt_tokens) as total_prompt_tokens,
+                        SUM(llm_completion_tokens) as total_completion_tokens,
+                        SUM(llm_total_tokens) as inspection_total_tokens,
+                        SUM(llm_cost_inr) as inspection_total_cost_inr
+                    FROM inspections
+                    GROUP BY user_id
+                ) i ON u.id = i.user_id
                 WHERE u.college = ?
-                GROUP BY u.id
                 ORDER BY u.full_name
                 """,
                 (college,)
@@ -556,13 +793,35 @@ class SQLiteRepository:
                 """
                 SELECT 
                     u.*,
-                    COALESCE(SUM(l.usage_count), 0) as total_llm_calls,
-                    COALESCE(SUM(l.tokens_used), 0) as total_tokens,
-                    COUNT(DISTINCT l.llm_name) as distinct_llms,
-                    GROUP_CONCAT(l.llm_name || ':' || l.usage_count, '; ') as llm_breakdown
+                    COALESCE(l.total_llm_calls, 0) as total_llm_calls,
+                    COALESCE(l.total_tokens, 0) as total_tokens,
+                    COALESCE(l.distinct_llms, 0) as distinct_llms,
+                    COALESCE(l.llm_breakdown, '') as llm_breakdown,
+                    COALESCE(i.total_prompt_tokens, 0) as total_prompt_tokens,
+                    COALESCE(i.total_completion_tokens, 0) as total_completion_tokens,
+                    COALESCE(i.inspection_total_tokens, 0) as inspection_total_tokens,
+                    COALESCE(i.inspection_total_cost_inr, 0) as inspection_total_cost_inr
                 FROM users u
-                LEFT JOIN llm_usage l ON u.id = l.user_id
-                GROUP BY u.id
+                LEFT JOIN (
+                    SELECT
+                        user_id,
+                        SUM(usage_count) as total_llm_calls,
+                        SUM(tokens_used) as total_tokens,
+                        COUNT(DISTINCT llm_name) as distinct_llms,
+                        GROUP_CONCAT(llm_name || ':' || usage_count, '; ') as llm_breakdown
+                    FROM llm_usage
+                    GROUP BY user_id
+                ) l ON u.id = l.user_id
+                LEFT JOIN (
+                    SELECT
+                        user_id,
+                        SUM(llm_prompt_tokens) as total_prompt_tokens,
+                        SUM(llm_completion_tokens) as total_completion_tokens,
+                        SUM(llm_total_tokens) as inspection_total_tokens,
+                        SUM(llm_cost_inr) as inspection_total_cost_inr
+                    FROM inspections
+                    GROUP BY user_id
+                ) i ON u.id = i.user_id
                 ORDER BY u.college, u.full_name
                 """
             )
@@ -632,6 +891,10 @@ class SQLiteRepository:
                 'Total LLM Calls': row['total_llm_calls'],
                 'Total Tokens': row['total_tokens'],
                 'Distinct LLMs Used': row['distinct_llms'],
-                'LLM Breakdown': row['llm_breakdown'] or 'None'
+                'LLM Breakdown': row['llm_breakdown'] or 'None',
+                'Inspection Prompt Tokens': row['total_prompt_tokens'],
+                'Inspection Completion Tokens': row['total_completion_tokens'],
+                'Inspection Total Tokens': row['inspection_total_tokens'],
+                'Inspection Total Cost (INR)': float(row['inspection_total_cost_inr'] or 0),
             })
         return result

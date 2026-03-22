@@ -1056,8 +1056,12 @@ class CivilAIStreamlitApp:
 
                     st.markdown('<div class="panel-title">AI Generated Report</div>', unsafe_allow_html=True)
                     with st.spinner("Generating report..."):
-                        report = self.inspection_service.generate_ai_report(detections)
+                        report, prompt_tokens, completion_tokens, total_tokens, approx_cost_inr = self.inspection_service.generate_ai_report(detections)
                     st.markdown(self._style_report(report), unsafe_allow_html=True)
+
+                    t1, t2 = st.columns(2)
+                    t1.metric("LLM Tokens Used", total_tokens)
+                    t2.metric("Approx LLM Cost (INR)", f"₹ {approx_cost_inr:.4f}")
 
                     _, final_pdf = self.inspection_service.create_and_persist_report(
                         user_id=user["id"],
@@ -1066,6 +1070,10 @@ class CivilAIStreamlitApp:
                         total_cracks=total,
                         high_severity=high,
                         report=report,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                        total_tokens=total_tokens,
+                        approx_cost_inr=approx_cost_inr,
                     )
 
                     with open(final_pdf, "rb") as f:
