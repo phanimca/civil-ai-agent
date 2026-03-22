@@ -370,22 +370,55 @@ class CivilAIStreamlitApp:
                     line-height: 1.35;
                 }
                 .snapshot-copy {
+                    display: block;
                     margin: 0 0 10px 0;
                     color: #334155;
                     font-size: 12px;
                     line-height: 1.6;
                 }
+                [data-testid="stMarkdownContainer"] p.snapshot-copy {
+                    font-size: 12px !important;
+                    line-height: 1.6;
+                    color: #334155;
+                    margin: 0 0 10px 0 !important;
+                }
                 .snapshot-list {
+                    display: block;
                     margin: 0;
+                    margin-block-start: 0;
+                    margin-block-end: 0;
                     padding-left: 16px;
                     color: #0f172a;
                     font-size: 12px;
                     line-height: 1.5;
                 }
+                [data-testid="stMarkdownContainer"] > ul.snapshot-list {
+                    width: 100% !important;
+                    display: block;
+                    padding-left: 16px;
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.5;
+                    color: #0f172a;
+                    text-align: left;
+                }
                 .snapshot-list li {
                     margin: 0 0 6px 0;
                 }
+                [data-testid="stMarkdownContainer"] > ul.snapshot-list > li {
+                    font-size: 12px;
+                    word-break: break-word;
+                    list-style: disc;
+                    margin: 0;
+                }
+                [data-testid="stMarkdownContainer"] > ul.snapshot-list > li + li {
+                    margin-top: 4px;
+                }
+                .snapshot-list li:last-child {
+                    margin-bottom: 0;
+                }
                 .snapshot-footnote {
+                    display: block;
                     margin: 6px 0 0 0;
                     color: #64748b;
                     font-size: 11px;
@@ -713,22 +746,29 @@ class CivilAIStreamlitApp:
         st.markdown(
             """
             <style>
+            #cai-header-root {
+                width: 100%;
+                display: block !important;
+            }
+            .st-emotion-cache-6c7yup > #cai-header-root {
+                flex: 1 1 100%;
+            }
             #cai-header-root .cai-header-wrap {
                 display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
                 gap: 12px;
                 padding: 12px 0 16px 0;
-                min-height: 118px;
-                flex-wrap: wrap;
+                min-height: auto;
+                flex-wrap: nowrap;
             }
             #cai-header-root .cai-header-left {
                 flex: 1;
                 min-width: 0;
             }
             #cai-header-root .cai-header-title {
-                font-size: clamp(22px, 2vw, 26px);
+                font-size: clamp(22px, 2vw, 26px) !important;
                 font-weight: 800;
                 color: #0f172a;
                 margin: 0;
@@ -744,7 +784,7 @@ class CivilAIStreamlitApp:
             }
             #cai-header-root .cai-header-right {
                 flex-shrink: 0;
-                margin-left: auto;
+                margin-left: 0;
             }
             #cai-header-root .cai-header-img {
                 max-height: 80px;
@@ -758,7 +798,7 @@ class CivilAIStreamlitApp:
                 #cai-header-root .cai-header-wrap {
                     gap: 10px;
                     padding: 10px 0 14px 0;
-                    min-height: 108px;
+                    min-height: auto;
                 }
                 #cai-header-root .cai-header-left {
                     min-width: 260px;
@@ -775,8 +815,9 @@ class CivilAIStreamlitApp:
                 #cai-header-root .cai-header-wrap {
                     flex-direction: column;
                     align-items: flex-start;
-                    min-height: 0;
-                    flex-wrap: wrap;
+                    justify-content: flex-start;
+                    min-height: auto;
+                    flex-wrap: nowrap;
                 }
                 #cai-header-root .cai-header-right {
                     margin-top: 8px;
