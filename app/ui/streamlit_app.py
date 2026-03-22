@@ -960,7 +960,7 @@ class CivilAIStreamlitApp:
             st.info("Upload one or more images to begin inspection.")
             return
 
-        for up_file in uploaded_files:
+        for upload_idx, up_file in enumerate(uploaded_files):
             image = Image.open(up_file).convert("RGB")
             img_np = np.array(image)
             with self._surface_container(f"inspect_result_{user['id']}_{up_file.name}"):
@@ -1013,7 +1013,7 @@ class CivilAIStreamlitApp:
                             "Download Report (PDF)",
                             f,
                             file_name=os.path.basename(final_pdf),
-                            key=f"download_current_{user['id']}_{up_file.name}_{total}_{high}",
+                            key=f"download_current_{user['id']}_{upload_idx}_{up_file.name}_{total}_{high}",
                             width="stretch",
                         )
 
@@ -1106,7 +1106,7 @@ class CivilAIStreamlitApp:
         with self._surface_container("history_cards_panel"):
             st.markdown('<div class="panel-title">Inspection Cards</div>', unsafe_allow_html=True)
 
-            for row in rows:
+            for idx, row in enumerate(rows):
                 st.markdown(
                     f"""
                     <div class="result-row">
@@ -1137,7 +1137,7 @@ class CivilAIStreamlitApp:
                             "Download PDF",
                             pdf_f,
                             file_name=os.path.basename(row["pdf_path"]),
-                            key=f"download_history_{row['id']}",
+                            key=f"download_history_{user['id']}_{row['id']}_{idx}_{row['image_name']}",
                         )
                 else:
                     st.caption("Report file not found on disk.")
