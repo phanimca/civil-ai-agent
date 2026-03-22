@@ -11,7 +11,6 @@ from PIL import Image
 
 from ai_report import generate_report
 from data.repository import SQLiteRepository
-from model import load_model
 from pdf import create_pdf
 from severity import calculate_severity
 
@@ -44,7 +43,20 @@ class InspectionService:
         self.hf_token = hf_token
 
     def load_detection_model(self):
-        return load_model(self.hf_token)
+        try:
+            # Import lazily so the app can boot even if cv2/ultralytics is unavailable.
+            from model import load_model
+        except Exception as exc:
+            raise RuntimeError(
+                "Model dependencies failed to import. Install compatible ultralytics/opencv packages."
+            ) from exc
+
+        try:
+            return load_model(self.hf_token)
+        except Exception as exc:
+            raise RuntimeError(
+                "Unable to load crack-detection model. Check runtime Python version and OpenCV wheel support."
+            ) from exc
 
     def run_detection(self, model, image_np: np.ndarray):
         return model(image_np)[0]
