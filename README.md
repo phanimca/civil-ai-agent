@@ -41,6 +41,10 @@ civil-ai-agent/
 └── .streamlit/                   # Streamlit config and secrets
 ```
 
+## Documentation
+- Main docs index: [.github/docs/README.md](.github/docs/README.md)
+- Repository best practices: [.github/docs/BEST_PRACTICES.md](.github/docs/BEST_PRACTICES.md)
+
 ## Description of AI Agents for Physical Civil Engineer
 Civil-AI-Agent can be viewed as a set of collaborating AI agents that help a physical civil engineer during inspection and reporting workflows:
 
