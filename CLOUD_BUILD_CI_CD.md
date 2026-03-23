@@ -322,16 +322,16 @@ echo -n "your_token_value" | gcloud secrets create OPENAI_TOKEN --data-file=-
 
 **Problem**: Build exceeds timeout (default 10 mins).
 
-**Solution**: Increase timeout in `cloudbuild.yaml`:
+**Solution**: Start with a shorter timeout in `cloudbuild.yaml` and increase only when needed:
 ```yaml
-timeout: 3600s  # 1 hour
+timeout: 1800s  # 30 minutes
 ```
 
 Or via CLI:
 ```bash
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --timeout=3600s
+  --timeout=1800s
 ```
 
 ### Docker image push fails
@@ -371,10 +371,7 @@ gcloud builds log $(BUILD_ID) --stream=false | bq load --source_format=NEWLINE_D
 
 ### Reduce build costs
 
-1. **Use faster machine types** (already set to `N1_HIGHCPU_8`):
-   ```yaml
-   machineType: N1_HIGHCPU_8
-   ```
+1. **Use the default Cloud Build machine type** for better Free Tier compatibility.
 
 2. **Cache Docker layers** (enable BuildKit):
    ```yaml
@@ -386,6 +383,12 @@ gcloud builds log $(BUILD_ID) --stream=false | bq load --source_format=NEWLINE_D
    ```bash
    --branch-pattern="^main$"
    ```
+
+4. **Deploy with capped Cloud Run scale**:
+  - `min-instances=0`
+  - `max-instances=1`
+  - `concurrency=2`
+  - `timeout=900`
 
 ### Free tier limits
 

@@ -13,7 +13,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libglib2.0-0 libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-netlify.txt requirements-gcloud.txt ./
+COPY requirements.txt requirements-gcloud.txt ./
 RUN pip install --upgrade pip \
     && pip install -r ${REQUIREMENTS_FILE}
 

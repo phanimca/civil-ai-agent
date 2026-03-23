@@ -147,13 +147,19 @@ gcloud run deploy civil-ai-agent \
   --image=$IMAGE_TAG \
   --region=$GCP_REGION \
   --platform=managed \
+  --min-instances=0 \
+  --max-instances=1 \
+  --concurrency=2 \
   --memory=1Gi \
   --cpu=0.5 \
-  --timeout=3600 \
-  --max-instances=10 \
+  --timeout=900 \
+  --cpu-throttling \
+  --no-cpu-boost \
   --allow-unauthenticated \
   --port=8080 \
   --set-env-vars="STREAMLIT_SERVER_HEADLESS=true" \
+  --set-env-vars="STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false" \
+  --set-env-vars="STREAMLIT_SERVER_ENABLECORS=false" \
   --set-secrets="OPENAI_TOKEN=OPENAI_TOKEN:latest" \
   --set-secrets="HF_TOKEN=HF_TOKEN:latest" \
   --set-secrets="BREVO_API_KEY=BREVO_API_KEY:latest" \
@@ -258,10 +264,12 @@ gcloud billing accounts list
 Use Cloud Console: **Billing** → **Budgets and alerts**
 
 ### 8.3 Optimize Cloud Run
-- **CPU allocation**: Set to "CPU is only allocated during request processing"
-- **Memory**: Current 1GB is reasonable for Streamlit
-- **Min instances**: Keep at 0 to save costs during idle periods
-- **Concurrency**: Default (80) is fine for typical load
+- **CPU allocation**: Use `--cpu-throttling` (request-only CPU) for lower idle compute charges
+- **Startup CPU boost**: Disable with `--no-cpu-boost` for strict cost control
+- **Memory**: Start at `1Gi`; drop to `512Mi` only if your app remains stable
+- **Min instances**: Keep at `0` to avoid always-on charges
+- **Max instances**: Set `1` to cap burst spend and stay Free Tier friendly
+- **Concurrency**: Set `2` to reduce memory pressure for Streamlit sessions
 
 ---
 

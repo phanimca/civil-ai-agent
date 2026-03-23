@@ -235,8 +235,7 @@ uv run streamlit run app/main.py
 3. Click **New app** and select your GitHub repo and branch.
 4. Set **Main file path** to `app/main.py`.
 5. Ensure the repository contains these deployment files in the root:
-	- `requirements.txt` — Netlify/host entry point that delegates to `requirements-netlify.txt`
-	- `requirements-netlify.txt` — lean Python dependency set for Netlify deployments
+	- `requirements.txt` — Python dependency set for cloud deployments
 	- `packages.txt` — Debian apt dependencies
 	- `.python-version` and `runtime.txt` pinned to Python `3.12`
 
@@ -322,16 +321,14 @@ resend
 sib-api-v3-sdk
 ```
 
-### Netlify build runs out of disk space while installing `nvidia_*` or `torch`
-Cause: `ultralytics` pulls the PyTorch stack, and recent Linux wheels can pull large CUDA-related packages that exceed Netlify's build disk limits.
+### ML dependency installation is resource-heavy on constrained build hosts
+Cause: `ultralytics` pulls the PyTorch stack, and recent Linux wheels can pull large CUDA-related packages that may exceed limited build disk or memory.
 
 Fix:
 
-1. Keep root-level [requirements.txt](requirements.txt) lean for Netlify deployments.
-2. Netlify installs from [requirements.txt](requirements.txt), which now delegates to [requirements-netlify.txt](requirements-netlify.txt).
-3. The app now handles a missing detection stack by showing a message on the Inspect page instead of crashing.
-
-For full crack-detection capability, use a Python host better suited to ML workloads and install the full app dependency set locally or on that host.
+1. Keep root-level [requirements.txt](requirements.txt) minimal and deployment-focused.
+2. Use a host suited to ML workloads for full crack-detection capability.
+3. The app handles a missing detection stack by showing a message on the Inspect page instead of crashing.
 
 ### Email verification OTP not received
 1. Check that `BREVO_API_KEY` is set and valid.

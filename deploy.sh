@@ -7,12 +7,19 @@ set -e
 PROJECT_ID="${GCP_PROJECT_ID:-civil-ai-agent}"
 REGION="${GCP_REGION:-asia-south1}"
 SERVICE_NAME="civil-ai-agent"
+MEMORY="${GCP_MEMORY:-1Gi}"
+CPU="${GCP_CPU:-0.5}"
+MIN_INSTANCES="${GCP_MIN_INSTANCES:-0}"
+MAX_INSTANCES="${GCP_MAX_INSTANCES:-1}"
+CONCURRENCY="${GCP_CONCURRENCY:-2}"
+TIMEOUT_SECONDS="${GCP_TIMEOUT_SECONDS:-900}"
 IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE_NAME}/${SERVICE_NAME}:latest"
 
 echo "🚀 Starting deployment for ${SERVICE_NAME}"
 echo "Project: ${PROJECT_ID}"
 echo "Region: ${REGION}"
 echo "Image: ${IMAGE_TAG}"
+echo "Free Tier profile: memory=${MEMORY}, cpu=${CPU}, min=${MIN_INSTANCES}, max=${MAX_INSTANCES}, concurrency=${CONCURRENCY}, timeout=${TIMEOUT_SECONDS}s"
 echo ""
 
 # Step 1: Ensure gcloud is authenticated
@@ -64,14 +71,19 @@ gcloud run deploy "${SERVICE_NAME}" \
   --image="${IMAGE_TAG}" \
   --region="${REGION}" \
   --platform=managed \
-  --memory=1Gi \
-  --cpu=0.5 \
-  --timeout=3600 \
-  --max-instances=10 \
+  --memory="${MEMORY}" \
+  --cpu="${CPU}" \
+  --min-instances="${MIN_INSTANCES}" \
+  --max-instances="${MAX_INSTANCES}" \
+  --concurrency="${CONCURRENCY}" \
+  --timeout="${TIMEOUT_SECONDS}" \
+  --cpu-throttling \
+  --no-cpu-boost \
   --allow-unauthenticated \
   --port=8080 \
   --set-env-vars="STREAMLIT_SERVER_HEADLESS=true" \
   --set-env-vars="STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false" \
+  --set-env-vars="STREAMLIT_SERVER_ENABLECORS=false" \
   --set-secrets="OPENAI_TOKEN=OPENAI_TOKEN:latest" \
   --set-secrets="HF_TOKEN=HF_TOKEN:latest" \
   --set-secrets="BREVO_API_KEY=BREVO_API_KEY:latest" \

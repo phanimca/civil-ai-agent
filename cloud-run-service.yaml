@@ -9,11 +9,14 @@ spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/maxScale: "1"
         autoscaling.knative.dev/minScale: "0"
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/startup-cpu-boost: "false"
     spec:
       serviceAccountName: civil-ai-agent
-      timeoutSeconds: 3600
+      timeoutSeconds: 900
+      containerConcurrency: 2
       containers:
       - name: service
         image: asia-south1-docker.pkg.dev/civil-ai-agent/civil-ai-agent/civil-ai-agent:latest

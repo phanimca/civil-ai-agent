@@ -3,7 +3,12 @@ param(
     [string]$Region = "asia-south1",
     [string]$ServiceName = "civil-ai-agent",
     [string]$Repository = "civil-ai-agent",
-    [int]$MinInstances = 0
+    [int]$MinInstances = 0,
+    [int]$MaxInstances = 1,
+    [int]$Concurrency = 2,
+    [int]$TimeoutSeconds = 900,
+    [string]$Memory = "1Gi",
+    [string]$Cpu = "0.5"
 )
 
 $ErrorActionPreference = "Stop"
@@ -129,10 +134,17 @@ $deployArgs = @(
     "--image=$image",
     "--region=$Region",
     "--platform=managed",
+    "--memory=$Memory",
+    "--cpu=$Cpu",
     "--min-instances=$MinInstances",
+    "--max-instances=$MaxInstances",
+    "--concurrency=$Concurrency",
+    "--timeout=$TimeoutSeconds",
+    "--cpu-throttling",
+    "--no-cpu-boost",
     "--allow-unauthenticated",
     "--port=8080",
-    "--set-env-vars=STREAMLIT_SERVER_HEADLESS=true"
+    "--set-env-vars=STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false,STREAMLIT_SERVER_ENABLECORS=false"
 )
 
 foreach ($secretName in $secretValues.Keys) {

@@ -1,1 +1,1 @@
--r requirements-netlify.txt
+-r requirements-gcloud.txt
