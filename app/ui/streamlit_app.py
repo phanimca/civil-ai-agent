@@ -95,12 +95,12 @@ class CivilAIStreamlitApp:
         return encoded
 
     @st.cache_resource
-    def _get_model(_self, hf_token: str):
-        return _self.inspection_service.load_detection_model()
+    def _get_model(self, hf_token: str):
+        return self.inspection_service.load_detection_model()
 
     @st.cache_data
-    def _has_detection_stack(_self) -> bool:
-        available, _ = _self.inspection_service.has_detection_stack()
+    def _has_detection_stack(self) -> bool:
+        available, _ = self.inspection_service.has_detection_stack()
         return available
 
     @staticmethod
