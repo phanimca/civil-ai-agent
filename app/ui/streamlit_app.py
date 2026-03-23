@@ -98,10 +98,14 @@ class CivilAIStreamlitApp:
     def _get_model(self, hf_token: str):
         return self.inspection_service.load_detection_model()
 
+    @staticmethod
     @st.cache_data
-    def _has_detection_stack(self) -> bool:
-        available, _ = self.inspection_service.has_detection_stack()
-        return available
+    def _has_detection_stack() -> bool:
+        try:
+            from model import load_model  # noqa: F401
+            return True
+        except Exception:
+            return False
 
     @staticmethod
     def _style_report(text: str) -> str:

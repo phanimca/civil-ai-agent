@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from config.settings import load_settings
 from data.repository import SQLiteRepository
 from services.auth_service import AuthService
@@ -54,6 +56,9 @@ class AppContainer:
 
 
 def main() -> None:
+    commit_sha = os.getenv("APP_COMMIT_SHA", "unknown")
+    print(f"[startup] civil-ai-agent commit_sha={commit_sha}", flush=True)
+
     container = AppContainer()
     app = container.build_app()
     app.run()

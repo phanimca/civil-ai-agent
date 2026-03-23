@@ -3,6 +3,13 @@
 
 steps:
   - name: gcr.io/cloud-builders/docker
+    id: pull-cache-image
+    entrypoint: bash
+    args:
+      - -c
+      - docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest || true
+
+  - name: gcr.io/cloud-builders/docker
     id: build-image
     args:
       - build
@@ -17,12 +24,20 @@ steps:
       - .
     env:
       - DOCKER_BUILDKIT=1
+    waitFor: ["pull-cache-image"]
 
   - name: gcr.io/cloud-builders/docker
     id: push-image
     args:
       - push
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${SHORT_SHA}
+    waitFor: ["build-image"]
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-latest-image
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
     waitFor: ["build-image"]
 
   - name: gcr.io/cloud-builders/gcloud
@@ -44,7 +59,7 @@ steps:
       - --no-cpu-boost
       - --allow-unauthenticated
       - --port=8080
-      - --set-env-vars=STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false,STREAMLIT_SERVER_ENABLECORS=false
+      - --set-env-vars=STREAMLIT_SERVER_HEADLESS=true,STREAMLIT_SERVER_ENABLEXSRFPROTECTION=false,STREAMLIT_SERVER_ENABLECORS=false,APP_COMMIT_SHA=${SHORT_SHA}
       - --set-secrets=OPENAI_TOKEN=OPENAI_TOKEN:latest
       - --set-secrets=HF_TOKEN=HF_TOKEN:latest
       - --set-secrets=BREVO_API_KEY=BREVO_API_KEY:latest
@@ -55,7 +70,7 @@ steps:
       - --set-secrets=ADMIN_SEED_EMAIL=ADMIN_SEED_EMAIL:latest
     env:
       - CLOUDSDK_COMPUTE_REGION=${_REGION}
-    waitFor: ["push-image"]
+    waitFor: ["push-image", "push-latest-image"]
 
   - name: gcr.io/cloud-builders/gcloud
     id: deployment-info
