@@ -95,8 +95,8 @@ class CivilAIStreamlitApp:
         return encoded
 
     @st.cache_resource
-    def _get_model(self, hf_token: str):
-        return self.inspection_service.load_detection_model()
+    def _get_model(_self, hf_token: str):
+        return _self.inspection_service.load_detection_model()
 
     @staticmethod
     @st.cache_data
